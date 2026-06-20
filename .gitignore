@@ -1,0 +1,9 @@
+# Paper PDFs are organized locally but not pushed (size). See papers/README.md and PAPERS_INDEX.md.
+papers/**/*.pdf
+
+# OS
+.DS_Store
+
+# Obsidian local workspace state (window layout/recent files - machine specific)
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
