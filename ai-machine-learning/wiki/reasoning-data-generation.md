@@ -14,7 +14,7 @@ Reasoning data now comes from several different pipelines:
 | Behavior-enriched web/math text | Installing cognitive behaviors before RL | Weak direct control over final task ability |
 | Agent/tool trajectories | Training tool-use and software agents | Harness reward hacks and leakage |
 
-[Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Forward and Backward Passes - 2506.04178.pdf) is the strongest data-pipeline reference. The OpenThoughts recipe found that sampling 16 answers per question was unusually high leverage, that QwQ-32B was a better teacher than DeepSeek-R1 despite lower benchmark scores, and that answer filtering was much less useful than expected. The pipeline's final shape was 850k math, 250k code, and 100k science examples, with teacher choice and question filtering more important than response filtering.
+[OpenThoughts: Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/OpenThoughts: Data Recipes for Reasoning Models - 2506.04178.pdf) is the strongest data-pipeline reference. The OpenThoughts recipe found that sampling 16 answers per question was unusually high leverage, that QwQ-32B was a better teacher than DeepSeek-R1 despite lower benchmark scores, and that answer filtering was much less useful than expected. The pipeline's final shape was 850k math, 250k code, and 100k science examples, with teacher choice and question filtering more important than response filtering.
 
 ## Reasoning Behaviors Matter Before RL
 
@@ -30,7 +30,7 @@ This makes SynLogic a bridge between [[data-curation-mixtures]] and [[alignment-
 
 ## Where To Put Reasoning Data
 
-[Front-Loading Reasoning (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf) makes the timing issue explicit. Reasoning data in pretraining creates durable foundations that SFT cannot fully recover later. But pretraining and SFT prefer different data:
+[Front-Loading Reasoning (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf) makes the timing issue explicit. Reasoning data in pretraining creates durable foundations that SFT cannot fully recover later. But pretraining and SFT prefer different data:
 
 - Pretraining benefits from broad, diverse reasoning data.
 - SFT benefits from smaller, higher-quality long-CoT data.
@@ -53,8 +53,8 @@ The practical blueprint is: use large diverse reasoning data during pretraining,
 
 ## Sources
 
-- [Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Forward and Backward Passes - 2506.04178.pdf)
+- [OpenThoughts: Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/OpenThoughts: Data Recipes for Reasoning Models - 2506.04178.pdf)
 - [Cognitive Behaviors that Enable Self-Improving Reasoners (2503.01307)](../../papers/05-learning/reasoning/Cognitive Behaviors that Enable Self-Improving Reasoners - 2503.01307.pdf)
 - [SynLogic: A Data Synthesis Framework for Logical Reasoning (2505.19641)](../../papers/05-learning/reasoning/SynLogic: A Data Synthesis Framework for Logical Reasoning - 2505.19641.pdf)
-- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf)
+- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf)
 - [QED-Nano: Teaching a Tiny Model to Prove Hard Theorems (2604.04898)](../../papers/05-learning/reasoning/QED-Nano: Teaching a Tiny Model to Prove Hard Theorems - 2604.04898.pdf)

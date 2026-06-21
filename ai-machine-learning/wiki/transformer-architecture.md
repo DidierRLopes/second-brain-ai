@@ -27,7 +27,7 @@ Since 2017, the transformer has been refined significantly:
 - **[[mixture-of-experts]]**: MoE layers enable massive parameter counts with sparse computation
 - **Pre-normalization**: Moving LayerNorm before attention (Pre-LN) instead of after improves training stability
 - **SwiGLU activations**: Replace ReLU in FFN layers for better performance (used in LLaMA, Mistral)
-- **Document masking**: Intra-document attention during packed-batch training avoids cross-document leakage; ProLong (2401.02954) confirms disabling cross-document attention helps both short and long-context performance.
+- **Document masking**: Intra-document attention during packed-batch training avoids cross-document leakage; ProLong (2410.02660) confirms disabling cross-document attention helps both short and long-context performance.
 
 ## Hyper-Connections: Generalizing the Residual Stream
 

@@ -99,7 +99,7 @@ Implications for KV cache design:
 - **Training context length isn't everything.** Top-ranked open-source models include both Llama3.1 (trained at 128K) and Qwen2 (trained at 32K with inference-time extrapolation). LWM-1M is worse than LWM-512K at length 256K — a longer training context can hurt if it under-trains RoPE base.
 - **Non-Transformer KV alternatives lag.** RWKV-v5 and Mamba-2.8B-slimpj degrade significantly at 8K, underperform Llama2-7B baseline up to 4K, and degenerate after — so SSM-based "infinite context" is not yet a working KV-cache replacement.
 
-The [ProLong paper (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>) reinforces this with KV-cache-relevant findings: training **longer than the evaluation context** (e.g. train at 512K, eval at 64K) materially improves long-context performance — likely because the model learns to manage longer-range dependencies that the KV cache must hold. **Disabling cross-document attention** (intra-document masking) during continued long-context training improves both short and long-context performance and also boosts training throughput, since attention skips across packed-document boundaries. See [[attention-variants|document masking]].
+The [ProLong paper (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) reinforces this with KV-cache-relevant findings: training **longer than the evaluation context** (e.g. train at 512K, eval at 64K) materially improves long-context performance — likely because the model learns to manage longer-range dependencies that the KV cache must hold. **Disabling cross-document attention** (intra-document masking) during continued long-context training improves both short and long-context performance and also boosts training throughput, since attention skips across packed-document boundaries. See [[attention-variants|document masking]].
 
 ## KV Cache Reuse: SGLang
 
@@ -122,6 +122,6 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [Fast Transformer Decoding: One Write-Head is All You Need / MQA (1911.02150)](../../papers/02-architecture/transformers/Fast Transformer Decoding: One Write-Head is All You Need - 1911.02150.pdf)
 - [GQA (2305.13245)](../../papers/02-architecture/transformers/GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints - 2305.13245.pdf) — uptraining recipe, head-count vs latency curve.
 - [RULER (2404.06654)](../../papers/04-efficiency/context-extension/RULER: What's the Real Context Size of Your Long-Context Language Models - 2404.06654.pdf) — claimed vs effective context length for 17 long-context LMs.
-- [ProLong (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>) — train longer than eval length; disable cross-document attention.
+- [ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) — train longer than eval length; disable cross-document attention.
 - KV Caching Explained — Hugging Face
 - Coding the KV Cache from Scratch — Sebastian Raschka

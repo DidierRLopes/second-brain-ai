@@ -54,7 +54,7 @@ OpenAI's reasoning models use a proprietary approach where the model generates i
 
 The OpenThoughts project (2025) addresses the lack of public training data for reasoning models. Through 1,000+ controlled experiments on data generation pipelines, they produced OpenThoughts3 — a dataset that trains a 7B model to achieve 53% on AIME 2025 and 51% on LiveCodeBench, demonstrating that public data can match proprietary distilled models.
 
-The full paper — [Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Forward and Backward Passes - 2506.04178.pdf) — details the pipeline and its systematic ablations. OpenThinker3-7B (trained on OpenThoughts3-1.2M with QwQ-32B as teacher) achieves: **69% AIME24**, 93.5% AMC23, 53.7% GPQA Diamond, 51.7% LiveCodeBench 06/24-01/25 — outperforming DeepSeek-R1-Distill-7B on average across 12 tasks by 12.4 points.
+The full paper — [OpenThoughts: Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/OpenThoughts: Data Recipes for Reasoning Models - 2506.04178.pdf) — details the pipeline and its systematic ablations. OpenThinker3-7B (trained on OpenThoughts3-1.2M with QwQ-32B as teacher) achieves: **69% AIME24**, 93.5% AMC23, 53.7% GPQA Diamond, 51.7% LiveCodeBench 06/24-01/25 — outperforming DeepSeek-R1-Distill-7B on average across 12 tasks by 12.4 points.
 
 ### OpenThoughts data pipeline — five empirical takeaways
 
@@ -119,7 +119,7 @@ The more surprising finding is **cross-domain transfer to mathematics**. SynLogi
 
 ## Front-Loading Reasoning: When to Inject Reasoning Data
 
-[Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf) (NVIDIA / CMU / Boston University / Stanford, Sep 2025) provides the first systematic study of how reasoning data placement across the training pipeline (pretraining vs. SFT) affects final performance. The central finding is an **asymmetric allocation principle**: diversity drives pretraining effectiveness, while quality governs SFT effectiveness.
+[Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf) (NVIDIA / CMU / Boston University / Stanford, Sep 2025) provides the first systematic study of how reasoning data placement across the training pipeline (pretraining vs. SFT) affects final performance. The central finding is an **asymmetric allocation principle**: diversity drives pretraining effectiveness, while quality governs SFT effectiveness.
 
 ### Experimental setup
 
@@ -161,7 +161,7 @@ Key lesson: training explicitly for test-time adaptation (via RC) generalizes be
 
 ## Generative Recursive Reasoning (GRAM)
 
-[Generative Recursive Reasoning (2605.19376)](../../papers/05-learning/reasoning/DATA RECIPES FOR REASONING MODELS - 2605.19376.pdf) (KAIST / Mila / NYU / Université de Montréal, May 2026 — **note: preprint, treat claims with care**) proposes a fundamentally different architecture for reasoning: instead of extending autoregressive sequences, it makes recursive latent-state models **probabilistic**, enabling multi-trajectory exploration.
+[Generative Recursive Reasoning (2605.19376)](../../papers/05-learning/reasoning/Generative Recursive Reasoning (GRAM) - 2605.19376.pdf) (KAIST / Mila / NYU / Université de Montréal, May 2026 — **note: preprint, treat claims with care**) proposes a fundamentally different architecture for reasoning: instead of extending autoregressive sequences, it makes recursive latent-state models **probabilistic**, enabling multi-trajectory exploration.
 
 Prior Recursive Reasoning Models (RRMs) like HRM and TRM perform iterative latent-state refinement with *deterministic* transitions — given the same input, they converge to the same trajectory. GRAM introduces **stochastic latent transitions**: at each recursion step, the model samples a transition from a learned conditional Gaussian rather than deterministically updating. This induces a distribution over reasoning trajectories rather than a single path.
 
@@ -192,7 +192,7 @@ Ablation confirms stochastic guidance is the core gain — it consistently impro
 
 ## Why Do Reasoning Models Loop?
 
-[Why Do Reasoning Models Loop? (2512.12895)](../../papers/05-learning/reasoning/Generative Recursive Reasoning - 2512.12895.pdf) — see the **Failure Modes** section below.
+[Why Do Reasoning Models Loop? (2512.12895)](../../papers/05-learning/reasoning/Wait, Wait, Wait... Why Do Reasoning Models Loop - 2512.12895.pdf) — see the **Failure Modes** section below.
 
 ## Failure Modes of Reasoning Models
 
@@ -242,14 +242,14 @@ This debate is largely the same debate as [[agi-timelines]] — they are not sep
 - [[frontier-training-playbook]] — where reasoning training sits in the broader recipe
 
 ## Sources
-- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (2501.00656)](../../papers/01-models/gpt-deepseek-v2-v3/DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning - 2501.00656.pdf); see `raw/deepseek-r1-reasoning-via-rl.md`
-- [Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Forward and Backward Passes - 2506.04178.pdf) — OpenThoughts3 data recipe and ablations.
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (2501.12948)](../../papers/01-models/gpt-deepseek-v2-v3/DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning - 2501.12948.pdf); see `raw/deepseek-r1-reasoning-via-rl.md`
+- [OpenThoughts: Data Recipes for Reasoning Models (2506.04178)](../../papers/05-learning/reasoning/OpenThoughts: Data Recipes for Reasoning Models - 2506.04178.pdf) — OpenThoughts3 data recipe and ablations.
 - [Cognitive Behaviors that Enable Self-Improving Reasoners (2503.01307)](../../papers/05-learning/reasoning/Cognitive Behaviors that Enable Self-Improving Reasoners - 2503.01307.pdf) — verification, backtracking, subgoal setting, backward chaining.
 - [SynLogic: A Data Synthesis Framework for Logical Reasoning (2505.19641)](../../papers/05-learning/reasoning/SynLogic: A Data Synthesis Framework for Logical Reasoning - 2505.19641.pdf) — synthetic logical reasoning data for RLVR.
-- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf) — reasoning data placement across pretraining, SFT, and RL.
+- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf) — reasoning data placement across pretraining, SFT, and RL.
 - [QED-Nano: Teaching a Tiny Model to Prove Hard Theorems (2604.04898)](../../papers/05-learning/reasoning/QED-Nano: Teaching a Tiny Model to Prove Hard Theorems - 2604.04898.pdf) — small-model theorem proving with SFT distillation, rubric RL, and reasoning cache.
-- [Generative Recursive Reasoning (2605.19376)](../../papers/05-learning/reasoning/DATA RECIPES FOR REASONING MODELS - 2605.19376.pdf) — probabilistic recursive latent-state reasoning.
-- [Why Do Reasoning Models Loop? (2512.12895)](../../papers/05-learning/reasoning/Generative Recursive Reasoning - 2512.12895.pdf) — looping mechanisms and temperature effects in reasoning models.
+- [Generative Recursive Reasoning (2605.19376)](../../papers/05-learning/reasoning/Generative Recursive Reasoning (GRAM) - 2605.19376.pdf) — probabilistic recursive latent-state reasoning.
+- [Why Do Reasoning Models Loop? (2512.12895)](../../papers/05-learning/reasoning/Wait, Wait, Wait... Why Do Reasoning Models Loop - 2512.12895.pdf) — looping mechanisms and temperature effects in reasoning models.
 - Demystifying Reasoning Models — Cameron R. Wolfe
 - Dwarkesh Podcast — Sutton, Karpathy, Schulman, Hassabis, Sholto/Trenton interviews (see `raw/dwarkesh-*`)
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`. Source for DeepSeek-R1 multi-stage pipeline, MCTS limitations, RLVR length control.

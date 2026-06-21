@@ -6,7 +6,7 @@ LLM evaluation is not one thing: it is a stack of cheap closed benchmarks, task-
 
 Benchmarks are useful because they are standardized, cheap to rerun, and easy to compare across models. Their weakness is construct validity: the measured variable is usually a sandboxed proxy, not the deployed capability people care about.
 
-[Open-World Evaluations: Evaluating Models on Real-World Data (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations: Evaluating Models on Real-World Data - 2605.20520.pdf) frames the failure mode in both directions:
+[Open-World Evaluations for Measuring Frontier AI Capabilities (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations for Measuring Frontier AI Capabilities - 2605.20520.pdf) frames the failure mode in both directions:
 
 - **Overestimation**: a task precise enough to benchmark is often precise enough to optimize against. Benchmark-like RL environments and leaked/paraphrased test items can inflate scores without producing robust real-world skill.
 - **Underestimation**: agents that could solve a task may fail because of incidental obstacles: CAPTCHAs, rate limits, brittle GUI elements, missing credentials, or sandbox artifacts.
@@ -18,7 +18,7 @@ The evaluation target should therefore be explicit. "Can this model pass the ben
 
 Open-world evaluations sit at the messy end of the spectrum: small sample sizes, long time horizons, real services or deployment-like environments, human interventions for incidental blockers, and qualitative analysis of the resulting logs. They are not a replacement for benchmarks; they are a way to elicit upper-bound frontier capability before it becomes cheap and routine.
 
-The CRUX example in [Open-World Evaluations: Evaluating Models on Real-World Data (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations: Evaluating Models on Real-World Data - 2605.20520.pdf) asked an agent to build and publish a simple iOS app. The coding part was not the main test. The real target was deployment: signing, App Store Connect forms, privacy policy hosting, screenshots, compliance questionnaires, review polling, and reviewer workflow.
+The CRUX example in [Open-World Evaluations for Measuring Frontier AI Capabilities (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations for Measuring Frontier AI Capabilities - 2605.20520.pdf) asked an agent to build and publish a simple iOS app. The coding part was not the main test. The real target was deployment: signing, App Store Connect forms, privacy policy hosting, screenshots, compliance questionnaires, review polling, and reviewer workflow.
 
 Key lessons:
 
@@ -33,8 +33,8 @@ Good reporting norms for open-world evals: specify the measured construct, docum
 
 Technical reports are useful evaluation artifacts when they expose methodology, not just scores. Two practical examples:
 
-- [Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models (2504.03624)](../../papers/08-evaluation/benchmarking/Open-World Evaluations: Assessing Model Performance Beyond Closed Benchmarks - 2504.03624.pdf) evaluates model quality together with inference throughput, which is the right frame for efficient long-context architectures. It also reports evaluator details: lm-evaluation-harness, Math-Verify and NeMo-Skills for math grading, EvalPlus sanitization for code, FP8 vs BF16 evaluation settings, and accuracy-throughput comparisons at long input lengths. A useful caution from the FP8 ablations: log-likelihood loss was not a reliable predictor of downstream task accuracy.
-- [Gemma 3 Technical Report (2503.19786)](../../papers/08-evaluation/benchmarking/Nemotron-H: A Family of Accurate and Efficient LLMs - 2503.19786.pdf) shows why capability evaluation should be paired with deployment-risk evaluation: memorization audits, personal-information checks, safety-policy violation rates, CBRN-relevant knowledge tests, and responsible open-model release criteria sit alongside standard capability benchmarks.
+- [Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models (2504.03624)](../../papers/08-evaluation/benchmarking/Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models - 2504.03624.pdf) evaluates model quality together with inference throughput, which is the right frame for efficient long-context architectures. It also reports evaluator details: lm-evaluation-harness, Math-Verify and NeMo-Skills for math grading, EvalPlus sanitization for code, FP8 vs BF16 evaluation settings, and accuracy-throughput comparisons at long input lengths. A useful caution from the FP8 ablations: log-likelihood loss was not a reliable predictor of downstream task accuracy.
+- [Gemma 3 Technical Report (2503.19786)](../../papers/01-models/llama-qwen-gemma/Gemma 3 Technical Report - 2503.19786.pdf) shows why capability evaluation should be paired with deployment-risk evaluation: memorization audits, personal-information checks, safety-policy violation rates, CBRN-relevant knowledge tests, and responsible open-model release criteria sit alongside standard capability benchmarks.
 
 The lesson is simple: a leaderboard table without grading rules, prompt format, sampling settings, contamination controls, safety audits, and efficiency context is not enough evidence to compare systems responsibly.
 
@@ -57,6 +57,6 @@ A complementary single-shot comparison method, with no benchmark suite at all: g
 
 ## Sources
 
-- [Open-World Evaluations: Evaluating Models on Real-World Data (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations: Evaluating Models on Real-World Data - 2605.20520.pdf) — open-world eval taxonomy, CRUX iOS app experiment, and reporting recommendations.
-- [Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models (2504.03624)](../../papers/08-evaluation/benchmarking/Open-World Evaluations: Assessing Model Performance Beyond Closed Benchmarks - 2504.03624.pdf) — accuracy-throughput evaluation, lm-evaluation-harness setup, math/code grading details, and FP8 loss-vs-eval caveat.
-- [Gemma 3 Technical Report (2503.19786)](../../papers/08-evaluation/benchmarking/Nemotron-H: A Family of Accurate and Efficient LLMs - 2503.19786.pdf) — memorization, privacy, safety-policy, and CBRN-style assurance evaluations alongside capability benchmarks.
+- [Open-World Evaluations for Measuring Frontier AI Capabilities (2605.20520)](../../papers/08-evaluation/benchmarking/Open-World Evaluations for Measuring Frontier AI Capabilities - 2605.20520.pdf) — open-world eval taxonomy, CRUX iOS app experiment, and reporting recommendations.
+- [Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models (2504.03624)](../../papers/08-evaluation/benchmarking/Nemotron-H: A Family of Accurate and Efficient Hybrid Mamba-Transformer Models - 2504.03624.pdf) — accuracy-throughput evaluation, lm-evaluation-harness setup, math/code grading details, and FP8 loss-vs-eval caveat.
+- [Gemma 3 Technical Report (2503.19786)](../../papers/01-models/llama-qwen-gemma/Gemma 3 Technical Report - 2503.19786.pdf) — memorization, privacy, safety-policy, and CBRN-style assurance evaluations alongside capability benchmarks.

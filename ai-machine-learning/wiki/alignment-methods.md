@@ -145,7 +145,7 @@ Where you fall on these questions depends largely on your [[agi-timelines]] view
 - [DAPO: An Open-Source LLM Reinforcement Learning System at Scale (2503.14476)](../../papers/05-learning/reinforcement-learning/DAPO: An Open-Source LLM Reinforcement Learning Framework - 2503.14476.pdf)
 - [Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm (1712.01815)](../../papers/05-learning/reinforcement-learning/Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm - 1712.01815.pdf)
 - DPO Deep Dive — Cameron R. Wolfe (cameronrwolfe.substack.com)
-- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (2501.00656)](../../papers/01-models/gpt-deepseek-v2-v3/DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning - 2501.00656.pdf); see `raw/deepseek-r1-reasoning-via-rl.md`
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (2501.12948)](../../papers/01-models/gpt-deepseek-v2-v3/DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning - 2501.12948.pdf); see `raw/deepseek-r1-reasoning-via-rl.md`
 - Dwarkesh Podcast — see `raw/dwarkesh-*` for primary interviews with Christiano, Yudkowsky, Schulman, Carlsmith, Amodei, Sholto/Trenton
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`. Source for APO, RLVR, IcePop, rubric rewards, in-flight updates.
 - Prime Intellect, Intellect-3 (in-flight updates, IcePop, pipeline RL).

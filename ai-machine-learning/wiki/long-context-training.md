@@ -15,7 +15,7 @@ The most reliable long-context path is staged continuation from a shorter model:
 
 [Effective Long-Context Scaling of Foundation Models / Llama Long (2309.16039)](../../papers/04-efficiency/context-extension/Effective Long-Context Scaling of Foundation Models - 2309.16039.pdf) is the clean case for continuation: bumping Llama 2's RoPE base from 10,000 to 500,000 and continuing at 32k matched from-scratch long-context training while saving about 40% FLOPs. Its most useful negative result is that long-text data was not the core ingredient. Quality mattered more than length distribution.
 
-[How to Train Long-Context Language Models (Effectively) / ProLong (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>) gives the more detailed recipe. Code repositories plus books were the best long-data sources, a 60/40 long/short mix beat long-only training, and training longer than the evaluation length improved 64k results. It also found that short-context instruction data was enough for SFT, while synthetic long-context SFT did not reliably help.
+[How to Train Long-Context Language Models (Effectively) / ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) gives the more detailed recipe. Code repositories plus books were the best long-data sources, a 60/40 long/short mix beat long-only training, and training longer than the evaluation length improved 64k results. It also found that short-context instruction data was enough for SFT, while synthetic long-context SFT did not reliably help.
 
 ## Position Encoding Is Necessary But Not Sufficient
 
@@ -55,8 +55,8 @@ The operational lesson for [[llm-evaluation]] is to report effective length sepa
 ## Sources
 
 - [Effective Long-Context Scaling of Foundation Models / Llama Long (2309.16039)](../../papers/04-efficiency/context-extension/Effective Long-Context Scaling of Foundation Models - 2309.16039.pdf)
-- [How to Train Long-Context Language Models (Effectively) / ProLong (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>)
+- [How to Train Long-Context Language Models (Effectively) / ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>)
 - [RULER: What's the Real Context Size of Your Long-Context Language Models (2404.06654)](../../papers/04-efficiency/context-extension/RULER: What's the Real Context Size of Your Long-Context Language Models - 2404.06654.pdf)
 - [YaRN: Efficient Context Window Extension of Large Language Models (2309.00071)](../../papers/04-efficiency/context-extension/YARN: Efficient Context Window Extension of Large Language Models - 2309.00071.pdf)
 - [Rope to Nope and Back Again (2501.18795)](../../papers/02-architecture/attention-variants/Rope to Nope and Back Again: A New Hybrid Position Encoding for Efficient Context Scaling - 2501.18795.pdf)
-- [Scaling Open-Source Language Models with Longtermism (2410.02660)](../../papers/04-efficiency/context-extension/Scaling Open-Source Language Models with Longtermism - 2410.02660.pdf)
+- [DeepSeek LLM: Scaling Open-Source Language Models with Longtermism (2401.02954)](../../papers/04-efficiency/context-extension/DeepSeek LLM: Scaling Open-Source Language Models with Longtermism - 2401.02954.pdf)

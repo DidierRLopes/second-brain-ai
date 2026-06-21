@@ -65,7 +65,7 @@ Architectural change was minimal — just decreasing RoPE's decay effect by bump
 
 ### ProLong / CEPED: long-context training recipe
 
-[ProLong (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>) studies *how* to do continued long-context training effectively, with several actionable findings:
+[ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) studies *how* to do continued long-context training effectively, with several actionable findings:
 
 - **Code repositories and books are the best long-data sources.** A 1:1 mix of books and code repos outperforms ArXiv, CommonCrawl, or any single source on HELMET. ProLong's final mix is 30% code repos, 30% books, 3% textbooks, 37% "ShortMix" (FineWeb-Edu/FineWeb/Wikipedia/Tulu/StackExchange/ArXiv/OpenWebMath).
 - **Training only on long data hurts.** More long data initially helps long-context tasks, but past ~60% long data, both long and short performance regress. Best long/short ratio: **60/40**.
@@ -78,7 +78,7 @@ Final ProLong-8B (Llama-3-8B-init, 40B token budget, RoPE base 8×10^6 → 1.28�
 
 ### DeepSeek-LLM / "Longtermism"
 
-[DeepSeek LLM (2410.02660)](../../papers/04-efficiency/context-extension/Scaling Open-Source Language Models with Longtermism - 2410.02660.pdf) is more about training scaling laws than positional encoding per se, but it confirms the standard recipe: GQA (8 KV heads at 67B), Pre-Norm + RMSNorm, SwiGLU, RoPE, multi-step LR schedule. Its main long-context takeaway is that **multi-step LR schedules let you resume training and extend context cheaply** — important if you're doing 4k → 32k → 128k staged extension.
+[DeepSeek LLM (2401.02954)](../../papers/04-efficiency/context-extension/DeepSeek LLM: Scaling Open-Source Language Models with Longtermism - 2401.02954.pdf) is more about training scaling laws than positional encoding per se, but it confirms the standard recipe: GQA (8 KV heads at 67B), Pre-Norm + RMSNorm, SwiGLU, RoPE, multi-step LR schedule. Its main long-context takeaway is that **multi-step LR schedules let you resume training and extend context cheaply** — important if you're doing 4k → 32k → 128k staged extension.
 
 ## NoPE (No Position Embedding)
 
@@ -139,9 +139,9 @@ For long-context production: choose a positional encoding approach (RoPE + YaRN,
 - Attention Is All You Need (arxiv:1706.03762)
 - [YaRN: Efficient Context Window Extension of Large Language Models (2309.00071)](../../papers/04-efficiency/context-extension/YARN: Efficient Context Window Extension of Large Language Models - 2309.00071.pdf) — NTK-by-parts + attention temperature, Dynamic YaRN.
 - [Effective Long-Context Scaling of Foundation Models / Llama Long (2309.16039)](../../papers/04-efficiency/context-extension/Effective Long-Context Scaling of Foundation Models - 2309.16039.pdf) — ABF base 10k→500k; data quality > data length; continual pre-training matches from-scratch at ~40% fewer FLOPs.
-- [How to Train Long-Context Language Models (Effectively) / ProLong (2401.02954)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2401.02954.pdf>) — code repos + books, 60/40 long/short ratio, train longer than eval length, short SFT is enough.
+- [How to Train Long-Context Language Models (Effectively) / ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) — code repos + books, 60/40 long/short ratio, train longer than eval length, short SFT is enough.
 - [The Impact of Positional Encoding on Length Generalization in Transformers (2305.19466)](../../papers/02-architecture/attention-variants/The Impact of Positional Encoding on Length Generalization in Transformers - 2305.19466.pdf) — NoPE beats all explicit PEs at length generalization in decoder-only LMs.
 - [Rope to Nope and Back Again (2501.18795)](../../papers/02-architecture/attention-variants/Rope to Nope and Back Again: A New Hybrid Position Encoding for Efficient Context Scaling - 2501.18795.pdf) — RNoPE-SWA, division-of-labor mechanism, QK-Norm hurts long context.
-- [DeepSeek LLM: Scaling Open-Source Language Models with Longtermism (2410.02660)](../../papers/04-efficiency/context-extension/Scaling Open-Source Language Models with Longtermism - 2410.02660.pdf) — multi-step LR schedule that supports staged context extension.
+- [DeepSeek LLM: Scaling Open-Source Language Models with Longtermism (2401.02954)](../../papers/04-efficiency/context-extension/DeepSeek LLM: Scaling Open-Source Language Models with Longtermism - 2401.02954.pdf) — multi-step LR schedule that supports staged context extension.
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - SmolLM3 report (RNoPE adoption, 4k → 128k stage progression). See `raw/smollm3-hugging-face-report.md`.

@@ -14,7 +14,7 @@ The useful heuristic:
 | RLVR | Verifiable tasks and valid rewards | Reward correctness matters more than prose quality |
 | Evaluation | Decontaminated held-out data | Leakage invalidates capability estimates |
 
-[Front-Loading Reasoning (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf) gives the cleanest formulation: diversity drives pretraining, quality drives SFT. It also warns that scaling mixed-quality SFT data can erase benefits from earlier reasoning injection.
+[Front-Loading Reasoning (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf) gives the cleanest formulation: diversity drives pretraining, quality drives SFT. It also warns that scaling mixed-quality SFT data can erase benefits from earlier reasoning injection.
 
 ## Filtering Is Not Always Free
 
@@ -52,4 +52,4 @@ The useful heuristic:
 - [MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection (2507.16812)](../../papers/06-data/curation-filtering/MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection - 2507.16812.pdf)
 - [The Pile: An 800GB Dataset of Diverse Text for Language Modeling (2101.00027)](../../papers/06-data/datasets/The Pile: An 800GB Dataset of Diverse Text for Language Modeling - 2101.00027.pdf)
 - [Analysing the Impact of Sequence Composition on Language Model Pre-Training (2402.13991)](../../papers/08-evaluation/analysis/Analysing The Impact of Sequence Composition on Language Model Pre-Training - 2402.13991.pdf)
-- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/WHY DO REASONING MODELS LOOP - 2510.03264.pdf)
+- [Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data (2510.03264)](../../papers/05-learning/reasoning/Front-Loading Reasoning: The Synergy between Pretraining and Post-Training Data - 2510.03264.pdf)
