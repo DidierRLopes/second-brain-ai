@@ -167,6 +167,7 @@ RL training systems are where [[safety-misalignment]] can enter. Reward hacking 
 - [[rl-scaling-laws]] - compute scaling laws for the RL recipes these systems execute
 - [[safety-misalignment]] - reward hacking and context-dependent misalignment
 - [[llm-evaluation]] - trace analysis and open-world evals
+- [[agentic-rl]] - ECHO trains an auxiliary cross-entropy objective on environment-observation tokens alongside GRPO, turning terminal feedback already present in every rollout into dense supervision
 
 ## Sources
 

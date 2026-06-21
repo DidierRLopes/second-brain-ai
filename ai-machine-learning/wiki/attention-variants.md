@@ -25,6 +25,14 @@ Caveat: FlashAttention / SDPA fused kernels assume standard attention, so they a
 
 Empirical: up to **1.3× over cuDNN 9.13 and 2.7× over Triton** on B200, reaching ~1600 TFLOPs/s (71% utilization). Implemented in CuTe-DSL (Python-embedded), giving 20–30× faster compile times than C++ templates while keeping full expressivity. The broader lesson: hardware scaling is asymmetric, so attention kernels increasingly need to mask non-matmul bottlenecks rather than just reduce HBM traffic.
 
+## Sparse Attention: DeepSeek Sparse Attention and Indexer Reuse
+
+Distinct from GQA/MQA/MLA (which shrink the KV cache by sharing or compressing K/V heads), **sparse attention** shrinks the attention computation itself by only attending to a subset of tokens. **DeepSeek Sparse Attention (DSA)** is the production-grade trainable instance of this idea: a lightweight "lightning indexer" runs at every layer, scoring all preceding tokens with a multi-head ReLU-gated dot product (few heads, low-rank projections, FP8 arithmetic — an order of magnitude cheaper per-FLOP than the main MLA computation) and selecting the top-k (k=2048) highest-scoring tokens. Core attention then runs only over that sparse subset, cutting per-layer cost from O(L²) to O(Lk). DSA is trained with a two-stage recipe: a dense warm-up that distills the indexer via KL-divergence against the aggregated full-attention distribution (all other weights frozen), followed by sparse training that jointly optimizes the whole model with the indexer receiving distillation gradients on a detached graph.
+
+The catch: the indexer itself is still O(L²) and runs independently at every layer, so its total cost across N layers is O(NL²) — on a 30B DSA model this indexer overhead alone consumed 27-81% of total attention latency at long context (10K-200K tokens), rising sharply with sequence length during prefill.
+
+[**IndexCache** (2603.12201)](../../papers/04-efficiency/inference-kernels/IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse - 2603.12201.pdf) (Bai, Dong, Jiang, Lv, Du, Zeng, Tang, Li — Tsinghua University / Z.ai) exploits the finding that top-k index selections are 70-100% overlapping between adjacent layers, by designating a small set of **Full (F) layers** that compute their own indexer and top-k set, and routing the rest as **Shared (S) layers** that just reuse the nearest preceding F layer's indices (one conditional branch, no extra memory). A **training-free** variant uses greedy search guided by calibration-set LM loss to pick which layers stay Full (plain uniform interleaving is measurably worse at the same retention ratio, since early/transitional layers are disproportionately sensitive to indexer removal); a **training-aware** variant distills each retained indexer against the *averaged* attention distribution of all layers it serves (provably gradient-equivalent to a single centroid target), letting even uniform interleaving match full-indexer quality. On a 30B DSA model, retaining only 1/4 of indexer computations gave **up to 1.82× prefill speedup and 1.48× decode speedup** at 200K context with negligible quality loss across nine long-context and reasoning benchmarks; preliminary results on 744B-parameter GLM-5 removing half the indexers showed ~1.2-1.3× end-to-end speedup. See [[kv-cache]] for this alongside other recent cache/indexing-efficiency work (Cartridges, the "Sleep" SSM-consolidation mechanism).
+
 ## Grouped Query Attention (GQA)
 
 GQA ([Ainslie et al., 2023 / 2305.13245](../../papers/02-architecture/transformers/GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints - 2305.13245.pdf)) partitions query heads into groups that share key and value heads. If you have 32 query heads and 8 KV groups, each group of 4 query heads shares one K and one V head. This dramatically reduces the KV-cache memory during inference (critical for serving) while maintaining nearly the same quality as full multi-head attention.
@@ -108,7 +116,7 @@ When training encounters instability or loss spikes, adjusting the **ratio of gl
 - [[hybrid-architectures]] — replace softmax attention entirely with linear/state-space variants
 - [[training-stability]] — gated attention reduces loss spikes; QK-norm and logit softcapping
 - [[optimizers]] — MuonClip handles MLA's specific stability challenges
-- [[kv-cache]] — GQA, MQA, MLA all primarily exist to reduce KV cache
+- [[kv-cache]] — GQA, MQA, MLA all primarily exist to reduce KV cache; also covers Cartridges and the SSM "Sleep" mechanism
 - [[inference-optimization]] — KV-cache reduction is critical for serving efficiency
 - [[data-curation-mixtures]] — sequence composition (packing strategies) and intra-document masking interact with attention patterns
 - [[frontier-training-playbook]] — where attention choices sit in the decision tree
@@ -121,6 +129,7 @@ When training encounters instability or loss spikes, adjusting the **ratio of gl
 - [Fast Transformer Decoding: One Write-Head is All You Need (1911.02150)](../../papers/02-architecture/transformers/Fast Transformer Decoding: One Write-Head is All You Need - 1911.02150.pdf) — Shazeer's original MQA paper.
 - [GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints (2305.13245)](../../papers/02-architecture/transformers/GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints - 2305.13245.pdf) — GQA + uptraining recipe (mean-pool, α=0.05).
 - DeepSeek-V2 / Kimi-K2 (MLA in production at scale).
+- [IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse (2603.12201)](../../papers/04-efficiency/inference-kernels/IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse - 2603.12201.pdf) — cross-layer reuse of DeepSeek Sparse Attention's lightning-indexer top-k selection.
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - SmolLM3 report (GQA group-count ablation). See `raw/smollm3-hugging-face-report.md`.
 - Qwen-2.5 (DCA at 1M context), Gemma 3 (SWA + full alternation), Llama 4 (chunked + RNoPE).

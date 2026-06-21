@@ -56,6 +56,7 @@ A more recent line of thought (Brown, April 2026) reframes the optimal-teacher q
 - [[llm-agents]] — Compound agent pipelines are the primary target for GEPA-style optimization
 - [[reasoning-models]] — GRPO's role in eliciting reasoning vs. GEPA's role in shaping how reasoning is invoked
 - [[chain-of-thought-reasoning]] — The reasoning patterns that prompt optimizers tune
+- [[agent-harness-engineering]] — Meta-Harness extends this same reflect-on-traces idea one layer up the stack, searching over a harness's full executable code instead of a single module's prompt
 
 ## Sources
 

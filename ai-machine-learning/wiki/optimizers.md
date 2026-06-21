@@ -133,6 +133,34 @@ In Trinity Large: internal buffer 8192 per GPU (2× user-specified value of 4096
 
 AdamW is the default for both. When tested with Muon, using the same optimizer for both pre and post-training still yielded the best performance.
 
+## Parametrization for Hyperparameter Transfer: µP, u-µP, CompleteP
+
+Tuning learning rate, init scale, and weight decay directly on a frontier-scale model is prohibitively expensive. The **Maximal Update Parametrization (µP)** addresses this with a "tune small, train large" recipe: it defines width-dependent scaling rules for init variance, learning rate, and multipliers (the `abc`-parametrization: `A_W` for the forward multiplier, `B_W` for init std, `C_W` for the Adam LR multiplier) so that the optimal learning rate found on a small proxy model stays optimal as width grows. µP has been adopted by several open LLM efforts and is suspected to be behind GPT-4 and Grok's training (their technical reports/codebases reference or hint at it).
+
+### u-µP: fixing µP's practical gaps and adding FP8 stability
+
+[u-µP: The Unit-Scaled Maximal Update Parametrization (2407.17465)](../../papers/03-scaling/training-optimization/u-µP: The Unit-Scaled Maximal Update Parametrization - 2407.17465.pdf) (Aleph Alpha, Cohere, Graphcore) shows that vanilla µP has real failure modes once you leave the toy setup used to originally demonstrate it. Lingle (cited in the paper) had already shown µP fails to give LR transfer for standard decoder-LM training; the u-µP authors reproduce this and show the original Tensor Programs V demo only worked because of an unusually long-epoch, constant-LR setup that overfits and makes validation loss misleading. Switching to a standard Llama-style training setup (cosine LR, realistic epoch count) breaks transfer — it's recovered only after **removing learnable gain/bias parameters from LayerNorm/RMSNorm** and switching to **independent (decoupled) weight decay** in AdamW. The paper also documents that µP is, ironically, bad for low precision: in the original Tensor Programs V LLM runs, the *standard*-parametrized model trains fine in FP16 while the µP model diverges from gradient underflow — despite µP's stated goal of keeping activations at Θ(1) scale.
+
+u-µP's fix is to combine µP with **Unit Scaling**: instead of just keeping activation scale independent of width (what µP gives you), Unit Scaling also fixes what that constant scale should be — variance ≈1 for activations, weights, and gradients at initialization, which centers values in a low-precision format's representable range. Concretely, u-µP sets `B_W ← 1` (unit initialization) and uses the Unit Scaling matmul factor `1/sqrt(fan_in)` in place of µP's own initialization rule, while keeping µP's width-scaling of the LR. The practical payoffs reported:
+- **Cheaper sweeps**: u-µP supports independent (1-D) hyperparameter search — sweeping just the learning rate alone gets near-optimal loss — whereas µP needs a combined multiplier search because its `σ_W` (init scale) and `η_W` (LR) hyperparameters interact (their ratio, not either value alone, sets the effective update size).
+- **No "base shape"**: µP requires picking an arbitrary base-width/base-depth reference model (the literature converged on base-width 256 with no principled justification) and re-initializing a throwaway base model just to compute scaling ratios. u-µP removes this HP entirely.
+- **Out-of-the-box FP8**: because u-µP tensors sit near the center of a float format's range by construction, most matmuls can use a plain `.to(float8)` cast with no dynamic per-tensor rescaling (e.g. no Transformer Engine-style rescaling). Their proof-of-concept FP8 training run over 8k steps showed only minor degradation versus FP32 — a setting where the equivalent un-scaled cast would fail outright for other parametrizations.
+- Across their sweep-strategy comparison, u-µP models reached validation loss equal to or lower than comparably-tuned µP models at widths from 128 to 4096.
+
+### CompleteP: fixing µP's "lazy" deep layers
+
+[Don't be lazy: CompleteP enables compute-efficient deep transformers (2505.01618)](../../papers/03-scaling/training-optimization/Don't be lazy: CompleteP enables compute-efficient deep transformers - 2505.01618.pdf) (Cerebras Systems, ETH Zurich, Princeton) tackles a different gap: µP transfers learning rate across *width*, but the paper shows standard µP (and the plain standard parametrization, SP) do **not** transfer hyperparameters across *depth* — the optimal LR/init-std drift as you add layers from 2 up to 128. Worse, even parametrizations that do achieve nominal depth transfer can still land in a **"lazy learning" regime**, where a layer's representation stays close to its linearization at initialization — effectively that layer is not learning meaningful nonlinear features, wasting the depth you paid compute for.
+
+The family of depth-aware extensions to µP is indexed by a single exponent `α` controlling how the residual branch output is scaled before being added to the stream: `h_{l+1} = h_l + L^{-α} · F_l(h_l)`, with `α ∈ [0.5, 1]`. Prior work (Yang et al.) argued `α = 0.5` works best and that depth-wise HP transfer was impossible at any `α`; this paper shows that's wrong; **`α = 1` is the unique value that gives both depth-wise HP transfer and "complete" (non-lazy) feature learning in every layer**, which they name **CompleteP**. Realizing this in practice also requires extending the scaling rules to LayerNorm and bias learning rates, and to AdamW's weight decay `λ` and `ε` as explicit functions of depth and width (their Table 1) — without these extensions, `α = 0.5` is unstable.
+
+Reported results, all on Cerebras CS-3 hardware with compute-optimal training (20 tokens-per-parameter):
+- CompleteP shows stable optimal LR/init-std across depths 2 to 128 (exceeding LLaMA-70B's 80 layers and LLaMA-405B's 126 layers), where SP, µP, and `α = 0.5` all drift.
+- At 1.5B (non-embedding) parameters, CompleteP gives **11.8% FLOP savings over µP at the compute-optimal width:depth ratio**, and **34.4% FLOP savings at the deepest (179-layer) setting** — the gap between CompleteP and µP widens as depth increases, because µP gets progressively more hyperparameter-detuned at depth.
+- CompleteP widens the range of compute-efficient width:depth ratios: at 1.5B non-embedding params, a narrow-deep model with `N:L ≈ 11.8` stays within 1% of compute-optimal loss under CompleteP, versus `N:L ≈ 38.7` for µP — relevant for low-memory hardware that streams one layer at a time.
+- Downstream zero-shot evals (HellaSwag, ARC-Easy, LAMBADA, RACE, PIQA, BoolQ) at 1.5B confirm the upstream loss gains transfer to task accuracy, not just validation perplexity.
+
+Together, u-µP and CompleteP point at the same underlying lesson: µP's "maximal feature learning" guarantee is necessary but not sufficient — it needs the right *target* dynamics (Unit Scaling's variance-1 convention, for numerics) and the right *depth* scaling (CompleteP's `α = 1`, for feature learning at every layer) to deliver hyperparameter transfer that actually holds up in realistic training setups. See [[scaling-laws]] for how these parametrization choices interact with compute-optimal width:depth and token:parameter ratios, and [[training-stability]] for the broader numerical-stability context.
+
 ## Sources
 
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
@@ -142,11 +170,13 @@ AdamW is the default for both. When tested with Muon, using the same optimizer f
 - Loshchilov & Hutter, "Decoupled Weight Decay Regularization" (AdamW, arxiv:1711.05101).
 - [An Empirical Model of Large-Batch Training (1812.06162)](../../papers/03-scaling/training-optimization/An Empirical Model of Large-Batch Training - 1812.06162.pdf) — gradient noise scale and critical batch size.
 - [SGDR: Stochastic Gradient Descent with Warm Restarts (1608.03983)](../../papers/03-scaling/training-optimization/SGDR: Stochastic Gradient Descent with Warm Restarts - 1608.03983.pdf) — cosine annealing with warm restarts.
+- [u-µP: The Unit-Scaled Maximal Update Parametrization (2407.17465)](../../papers/03-scaling/training-optimization/u-µP: The Unit-Scaled Maximal Update Parametrization - 2407.17465.pdf) — combines µP with Unit Scaling for HP transfer + out-of-the-box FP8 training.
+- [Don't be lazy: CompleteP enables compute-efficient deep transformers (2505.01618)](../../papers/03-scaling/training-optimization/Don't be lazy: CompleteP enables compute-efficient deep transformers - 2505.01618.pdf) — depth-wise HP transfer and non-lazy feature learning via α=1 residual scaling.
 
 ## Related Topics
 
 - [[training-stability]] — MuonClip is a stabilization technique
 - [[mixture-of-experts]] — MuonClip helps stabilize MoE training in particular
 - [[supervised-fine-tuning]] — LR sweeps and batch-size choices in post-training
-- [[scaling-laws]] — batch-size scaling rules tie back to compute-optimal training
+- [[scaling-laws]] — batch-size scaling rules tie back to compute-optimal training; CompleteP's width:depth findings revisit Kaplan-style compute-optimal aspect ratios
 - [[frontier-training-playbook]] — where optimizers sit in the broader recipe

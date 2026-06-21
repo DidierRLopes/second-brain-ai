@@ -19,6 +19,7 @@ ViT spawned an entire family of models and led to the idea that transformers are
 ## Related Topics
 - [[transformer-architecture]] — The core architecture adapted for vision
 - [[positional-encodings]] — 2D positional encodings for image patches
+- [[model-report-case-studies]] — Qwen-VLA extends this cross-modal unification idea from perception into robot action generation, attaching a DiT-based action decoder to a vision-language backbone so one model handles manipulation, navigation, and human egocentric demonstrations
 
 ## Sources
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (arxiv:2010.11929)

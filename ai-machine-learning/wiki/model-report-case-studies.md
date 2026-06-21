@@ -23,6 +23,7 @@ Model report case studies are the named-model anchors for the wiki: GPT-4, DeepS
 | Olmo 3 | A fully-open model flow (data, code, checkpoints, training recipe) remains possible at frontier-adjacent scale | [[frontier-training-playbook]], [[data-curation-mixtures]], [[scaling-laws]] |
 | MiniMax-M1 / M2 | Hybrid linear attention plus CISPO unlocks cheap long test-time compute; agent-native RL infra (Forge) enables self-evolving checkpoints | [[hybrid-architectures]], [[frontier-async-rl]], [[mixture-of-experts]] |
 | Nemotron 3 family | Hybrid Mamba-Transformer, NVFP4, and LatentMoE scale a shared architecture across a Nano/Super/Ultra family | [[hybrid-architectures]], [[quantization-fundamentals]], [[mixture-of-experts]] |
+| Qwen-VLA | A single vision-language-action model can unify manipulation, navigation, and egocentric-human action prediction across robot embodiments, instead of training one specialist policy per task/robot | [[vision-transformers]], [[hybrid-architectures]], [[llm-agents]] |
 
 ## Patterns Across Reports
 
@@ -46,6 +47,10 @@ A second wave of case studies, all from 2025–2026, teaches lessons specific to
 
 **The Nemotron 3 family** spans two complementary NVIDIA reports, not a duplicate. [NVIDIA Nemotron 3: Efficient and Open Intelligence (2512.20856)](https://arxiv.org/abs/2512.20856) — not currently in the repo as a PDF; arXiv link only — is the family-wide white paper introducing the Nano/Super/Ultra split, a hybrid Mamba-Transformer architecture with NVFP4 quantization and a "LatentMoE" design, plus multi-token-prediction layers and context windows up to 1M tokens; it explicitly states that variant-specific reports for Super and Ultra would follow. [Nemotron 3 Super (2604.12374)](https://arxiv.org/pdf/2604.12374) — already cited in [[frontier-async-rl]] for its IcePop/MIS and KV-cache-recomputation findings — is that promised follow-up, four months later: Super specifically is 120B total / 12B active params, pretrained on 25T tokens, with 2.2×–7.5× higher inference throughput than GPT-OSS-120B and Qwen3.5-122B respectively. Read 2512.20856 first for the shared architecture, then 2604.12374 for the Super-specific training and systems detail.
 
+## Embodied-AI Addition: Qwen-VLA
+
+[Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments (2605.30280)](../../papers/01-models/llama-qwen-gemma/Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments - 2605.30280.pdf) is the Qwen Team's first major robotics release and extends the case-study table beyond chat/reasoning models into embodied AI. Most prior embodied systems specialize narrowly — a manipulation policy here, a navigation policy there — because the output formats look incompatible (end-effector deltas vs. waypoints vs. human hand poses). Qwen-VLA's core move is to argue this fragmentation is superficial: it casts manipulation, vision-and-language navigation (VLN), trajectory prediction, and egocentric human demonstrations into one shared action-and-trajectory prediction space, built on a Qwen3.5-4B vision-language backbone plus a ~1.15B-parameter DiT-based flow-matching action expert (16 DiT blocks, joint self-attention with AdaLN timestep conditioning). Two mechanisms make the unification work: **embodiment-aware prompt conditioning**, where a textual prompt (robot platform, arm configuration, control frequency, prediction horizon) is prepended per example so one set of decoder weights serves many robot bodies and control conventions; and a **four-stage training recipe** — text-to-action pretraining (T2A, where the DiT learns a language-indexed action prior with images withheld), continued pretraining (grounding the prior in vision), supervised fine-tuning (branching into multi-task and real-robot tracks), and reinforcement learning with sparse binary success rewards in SimplerEnv. The T2A stage is justified by a "compression" framing: a short instruction plus embodiment prompt compactly encodes intent, while the matching action trajectory is hundreds of high-dimensional values, so the decoder first learns this decompression map from language alone before vision is introduced. The resulting Qwen-VLA-Instruct reports 97.9% on LIBERO, 86.1/87.2% on RoboTwin-Easy/Hard, 69.0% OSR on R2R, 59.6% SR on RxR, 76.9% average OOD success on real-world ALOHA, and 26.6% zero-shot success on DOMINO dynamic manipulation — evidence that joint pretraining across heterogeneous embodied data transfers better than narrow specialist training, particularly under scene/lighting/embodiment shifts.
+
 ## How To Use This In Obsidian
 
 Use this page as a graph hub for named models. When a model comes up in a paper or podcast note, link to this note first if the question is "what does this model teach?" Link to the deeper technical note if the question is about a mechanism:
@@ -68,6 +73,7 @@ Use this page as a graph hub for named models. When a model comes up in a paper 
 - [[frontier-async-rl]] - async RL fixes shared by MiniMax-M1, Composer 2.5, and Nemotron 3 Super
 - [[hybrid-architectures]] - MiniMax-M1's lightning attention and Nemotron 3's Mamba-Transformer hybrid
 - [[data-quality-vs-diversity]] - data lessons across reports
+- [[vision-transformers]] - the ViT/DeiT cross-modal unification lineage that Qwen-VLA extends into robot action generation
 
 ## Sources
 
@@ -93,3 +99,4 @@ Use this page as a graph hub for named models. When a model comes up in a paper 
 - [The MiniMax-M2 Series: Mini Activations Unleashing Max Real-World Intelligence (2605.26494)](https://arxiv.org/abs/2605.26494) — not currently in the repo as a PDF; arXiv link only.
 - [NVIDIA Nemotron 3: Efficient and Open Intelligence (2512.20856)](https://arxiv.org/abs/2512.20856) — not currently in the repo as a PDF; arXiv link only.
 - [Nemotron 3 Super: Open, Efficient Mixture-of-Experts Hybrid Mamba-Transformer Model for Agentic Reasoning (2604.12374)](https://arxiv.org/pdf/2604.12374) — not currently in the repo as a PDF; arXiv link only.
+- [Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments (2605.30280)](../../papers/01-models/llama-qwen-gemma/Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments - 2605.30280.pdf)

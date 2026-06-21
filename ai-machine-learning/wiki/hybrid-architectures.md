@@ -75,6 +75,12 @@ The interleaving ratio is itself a design choice, similar to the global/local in
 - **Tooling**: less mature than transformer infra. Fewer reference kernels, fewer benchmarks for ablation comparison.
 - **Reasoning about behavior**: harder to interpret what a state-space layer does compared to attention with its explicit token-level interactions.
 
+## Sleep: Consolidating Evicted Context into Fast Weights
+
+A 2026 CMU/University of Maryland paper, ["Do Language Models Need Sleep?"](../../papers/04-efficiency/context-extension/Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference - 2605.26099.pdf), probes a specific weakness of the SSM-attention hybrid recipe above: when the attention KV cache is evicted (window full, tokens dropped), the SSM blocks' fixed-size fast weights are supposed to carry forward whatever the attention cache can no longer hold. The paper shows this works for *storage* but not for *deep computation* — a 4-layer GDN-attention hybrid (attention → GDN → attention → GDN) with hard eviction every 24 tokens degrades to near-random guessing on a Rule-110 cellular-automaton task as the required reasoning depth increases, even though the amount of information to store is held constant. The bottleneck isn't fast-weight capacity, it's that a single forward pass isn't enough computation to transform raw evicted tokens into a fast-weight state that supports later multi-step reasoning.
+
+The fix is a **sleep phase**: right before the KV cache for a window is cleared, the model runs N *additional* offline forward passes over that about-to-be-evicted context, using each pass to further refine the SSM fast-weight update (`S_t = α_t·S_{t-1} + β_t·v_t k_t^T`, a gated Hebbian/delta-rule rule, the same family as the linear-attention recurrence in this page's "Core Idea" section). Wake-time prediction still costs one forward pass; the extra reasoning compute is paid offline. On the k-hop Depo graph-retrieval task and on GSM-Infinite math reasoning (fine-tuning Jet-Nemotron 2B and Ouro 1.4B), increasing N specifically improves the hardest, deepest-reasoning examples — e.g., Jet-Nemotron's eight-operation GSM-Infinite accuracy rose from 0.351 to 0.388 with 6 sleep loops — while easy examples saturate regardless of loop count. See [[kv-cache|the KV-cache wiki page]] for the full mechanism writeup alongside related cache-replacement work (Cartridges, IndexCache).
+
 ## When to Reach for a Hybrid
 
 - You need **very long context** (>128k tokens) and softmax attention's quadratic cost is prohibitive.
@@ -88,6 +94,7 @@ If any of these aren't true, a transformer with [[positional-encodings|RNoPE/YaR
 - [[attention-variants]] — long-context attention patterns that achieve similar goals within pure transformers
 - [[transformer-architecture]] — the baseline being hybridized
 - [[positional-encodings]] — RNoPE/YaRN are the alternative path to long context within transformers
+- [[kv-cache]] — the Sleep mechanism's offline recurrence is a direct alternative to KV-cache eviction/compression; see also Cartridges and IndexCache there
 - [[frontier-training-playbook]] — where hybrid architectures sit in the decision tree
 - [[diffusionblocks-blockwise-training]] — a different recurrence axis: weight-shared recurrent-depth transformers, trained via block-wise local losses instead of full BPTT
 
@@ -96,4 +103,5 @@ If any of these aren't true, a transformer with [[positional-encodings|RNoPE/YaR
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - [Transformers are SSMs: Generalized Models and Efficient Algorithms Through Structured State Space Duality / Mamba-2 (2405.21060)](../../papers/02-architecture/alternatives/Transformers are SSMs: Generalized Models and Efficient Algorithms for Sequence Modeling - 2405.21060.pdf) — SSD framework, 2–8× over Mamba-1, TP-friendly architecture.
 - [RULER (2404.06654)](../../papers/04-efficiency/context-extension/RULER: What's the Real Context Size of Your Long-Context Language Models - 2404.06654.pdf) — non-Transformer architectures (RWKV, Mamba) lag Transformers at long context.
+- [Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference (2605.26099)](../../papers/04-efficiency/context-extension/Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference - 2605.26099.pdf) — sleep-time consolidation of evicted context into SSM fast weights in attention-SSM hybrids.
 - Nemotron-H, Falcon H1, Qwen3-Next technical reports.
