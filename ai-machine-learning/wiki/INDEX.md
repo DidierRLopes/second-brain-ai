@@ -2,7 +2,7 @@
 
 ## Frontier Training (synthesis)
 - [[frontier-training-playbook]] — The 12-step minimal playbook; how SmolLM3, gpt-oss-120b, Kimi K2, Hermes 4, Intellect-3, DeepSeek-R1, and Trinity actually train; plus Raschka's Qwen 2/Apple AFM/Gemma 2/Llama 3.1 pre/post-training comparison (iTeC, Mirror Descent RLHF, WARP/WARM, model averaging); spine for the rest of the wiki
-- [[model-report-case-studies]] — Named-model map from GPT-4, DeepSeek, Llama, Qwen, Gemma, Nemotron-H, SmolLM2, MiniCPM, and Kimi K2 to the design lessons they teach
+- [[model-report-case-studies]] — Named-model map from GPT-4, DeepSeek, Llama, Qwen, Gemma, Nemotron-H, SmolLM2, MiniCPM, and Kimi K2 to the design lessons they teach; plus an RL-era addendum covering Kimi K1.5/Kimi-Researcher, Composer 2/2.5, Olmo 3, MiniMax-M1/M2, and the Nemotron 3 family
 - [[small-efficient-models]] — How 1-3B deployable models trade extra tokens, cleaner data, WSD schedules, and distillation for cheap inference and local deployment
 
 ## Transformer Architecture
@@ -46,6 +46,7 @@
 - [[rl-training-systems]] — Rollout/trainer systems for GRPO, DAPO, PipelineRL, PrefixRL, KL control, stale policies, and verifier-backed RL; SemiAnalysis three-actor producer/consumer throughput-matching model, environment-state-level staleness, OpenRLHF→slime/verl framework lineage
 - [[rl-environments-frameworks]] — Adithya S K & Sergio Paniego (May 2026): practical Rosetta-stone comparison of OpenEnv, ORS, NeMo Gym, Verifiers, SkyRL Gym, and GEM across Jupyter agent / Wordle / Desktop computer-use reference envs; 8-component framework-agnostic design methodology; HTTP-vs-in-process decision; agent skills for code generation
 - [[frontier-async-rl]] — Luke Huang (May 2026): survey of async RL across all frontier labs; policy lag K; TIS/MIS/DeepSeek masking; MoE routing replay, TITO, batch-invariant kernels, FP32 LM head, RDMA weight sync; Sequence IS vs Token IS; low-bias compute scaling hypothesis; environment-state-level staleness as a third granularity (with SemiAnalysis); open questions
+- [[rl-scaling-laws]] — RL-stage compute scaling laws: ScaleRL's sigmoidal fit and recipe, Scaling Behaviors' power-law fit across Qwen2.5, IsoCompute Playbook's compute-optimal sampling allocation, NVIDIA's ProRL V1/V2 prolonged-training lineage, and Polaris's calibrated-difficulty recipe (whose dataset ScaleRL reuses)
 - [[reward-hacking-dynamics]] — Prime Intellect (May 2026): reward hacking as gradient dynamics, not specification; backdoor-ifeval experiments; rarity floor (no safe threshold); Goldilocks difficulty zone; prompt injection backfire; 3-phase liftoff; Prime Sprints
 - [[agent-rl-instability-tool-conditioned]] — Microsoft/Aditya Challapally (Jan 2026): tool-conditioned variance amplification in production agent RL; invisible to aggregate metrics; Post-Training Toolkit (OSS, TRL-integrated); slice-aware diagnostics
 - [[on-policy-distillation]] — OPD, OPSD, SDFT/GATES/CRISP/RLSD, MOPD, cross-tokenizer OPD; gradient geometry, multi-teacher recipes, the algorithm-selection table; foundational methods (MiniLLM, GKD, DistiLLM, G-OPD/ExOPD, AOPD); why on-policy methods forget less (RL's Razor, forward/reverse-KL, SFT-memorizes-RL-generalizes); failure modes (Rock Tokens, prefix drift, CaOPD)
@@ -62,6 +63,7 @@
 - [[agent-harness-engineering]] — The engineering scaffolding around production agents: context strategy, CursorBench, Keep Rate, error taxonomies, planner/worker/judge orchestration, training vs. production asymmetry, thin-harness/fat-skills; Southbridge's GLM-5.2 vs. Claude Opus 4.8 single-shot build comparison (silent-vs-loud failure modes)
 - [[cloud-agent-infrastructure]] — VM isolation, sandboxing primitives (Firecracker, gVisor), snapshot/resume for async gaps, Stripe Minions, sandbox-as-a-service landscape, runtime shift and dev/prod parity
 - [[swe-agent-benchmarks]] — SWE-agent training and evaluation environments: R2E-Gym, SWE-smith, Multi-SWE-bench, synthetic issues, and hybrid verifiers
+- [[agentic-rl]] — Training agents with RL: the PBRFT-to-POMDP reframing (Agentic RL survey), DeepSWE's GRPO++/Compact Filtering, AgentRL's Cross-Policy Sampling/Task Advantage Normalization, AutoForge's environment synthesis, Agent-R1's masking, and long-context multi-turn SWE-agent RL
 - [[dont-build-multi-agents]] — Walden Yan (Cognition): context engineering is the #1 job; why parallel multi-agent architectures fail in 2025; single-threaded linear agents as the default
 - [[context-engineering]] — Tobi Lütke's definition and the shift from prompt engineering to dynamic context assembly; the 7-part context taxonomy (instructions, user prompt, history, long-term memory, RAG, tools, structured output); cheap-demo-vs-magical-agent framing
 - [[learning-the-bitter-lesson]] — Lance Martin (LangChain): applying Sutton's Bitter Lesson to AI engineering; add structure for current model capabilities, remove it as models improve; open-deep-research case study

@@ -82,6 +82,7 @@ The MGH is the agent-side analogue of the [[on-policy-distillation|"best standal
 - [[ai-rd-automation]] — Agents running the modelcrafting loop end-to-end; research intuition is the bottleneck, not method knowledge
 - [[agent-harness-engineering]] — Production-side engineering around agents: context windows, evals (CursorBench, Keep Rate), error taxonomies, planner/worker/judge orchestration for long-running coding work
 - [[swe-agent-benchmarks]] — Executable coding-agent environments, synthetic issue generation, and hybrid verifiers
+- [[agentic-rl]] — Training agents with RL: DeepSWE, AgentRL, AutoForge, Agent-R1, and the agentic-RL survey
 - [[llm-evaluation]] — Why closed benchmarks and open-world evaluations measure different parts of agent capability
 
 ## Sources

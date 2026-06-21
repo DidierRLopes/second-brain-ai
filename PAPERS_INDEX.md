@@ -1,18 +1,18 @@
 # Research Papers Index
 
-> 73 papers (PDFs on disk) plus 1 URL-only reference (DeepSeek-V3), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
+> 73 papers (PDFs on disk) plus 26 URL-only references (DeepSeek-V3, plus 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources added 2026-06-20), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
 
 ## Quick Reference
 
 | Category | Subfolders | Papers |
 |---|---|---|
-| [01-models](#01-models) | gpt-deepseek-v2-v3, llama-qwen-gemma, small-efficient | 10 (+1 URL-only) |
+| [01-models](#01-models) | gpt-deepseek-v2-v3, llama-qwen-gemma, small-efficient | 10 (+6 URL-only) |
 | [02-architecture](#02-architecture) | transformers, attention-variants, alternatives | 7 |
-| [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 15 |
+| [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 15 (+4 URL-only) |
 | [04-efficiency](#04-efficiency) | quantization, context-extension, inference-kernels | 8 |
-| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 19 |
+| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 19 (+6 URL-only) |
 | [06-data](#06-data) | curation-filtering, datasets, tokenization | 6 |
-| [07-applications](#07-applications) | agents-swe | 4 |
+| [07-applications](#07-applications) | agents-swe | 4 (+10 URL-only) |
 | [08-evaluation](#08-evaluation) | benchmarking, analysis, safety | 4 |
 
 ---
@@ -33,6 +33,11 @@ Named model releases and technical reports.
 - [OLMo 2 Furious](<papers/01-models/llama-qwen-gemma/OLMo 2 Furious - 2501.00656.pdf>) — arXiv:2501.00656
 - [Qwen3 Technical Report](<papers/01-models/llama-qwen-gemma/Qwen3 Technical Report - 2505.09388.pdf>) — arXiv:2505.09388
 - [The Llama 3 Herd of Models](<papers/01-models/llama-qwen-gemma/The Llama 3 Herd of Models - 2407.21783.pdf>) — arXiv:2407.21783
+- [Olmo 3](https://arxiv.org/abs/2512.13961) — arXiv:2512.13961 — *not currently in the repo as a PDF; arXiv link only*
+- [The MiniMax-M2 Series: Mini Activations Unleashing Max Real-World Intelligence](https://arxiv.org/abs/2605.26494) — arXiv:2605.26494 — *not currently in the repo as a PDF; arXiv link only*
+- [MiniMax-M1: Scaling Test-Time Compute Efficiently with Lightning Attention](https://arxiv.org/abs/2506.13585) — arXiv:2506.13585 — *not currently in the repo as a PDF; arXiv link only*
+- [NVIDIA Nemotron 3: Efficient and Open Intelligence](https://arxiv.org/abs/2512.20856) — arXiv:2512.20856 — *not currently in the repo as a PDF; arXiv link only*
+- [Nemotron 3 Super: Open, Efficient Mixture-of-Experts Hybrid Mamba-Transformer Model for Agentic Reasoning](https://arxiv.org/pdf/2604.12374) — arXiv:2604.12374 — *not currently in the repo as a PDF; arXiv link only*
 
 **small-efficient/**
 - [MiniCPM: Unveiling the Potential of Small Language Models](<papers/01-models/small-efficient/MiniCPM: Unveiling the Potential of Small Language Models - 2404.06395.pdf>) — arXiv:2404.06395
@@ -81,6 +86,10 @@ Scaling laws, compute-optimal training, MoE scaling, and training-optimization m
 - [ThunderKittens: Simple, Fast, and Adorable AI Kernels](<papers/03-scaling/training-optimization/ThunderKittens: Simple, Fast, and Adorable AI Kernels - 2410.20399.pdf>) — arXiv:2410.20399
 - [PipelineRL: Faster On-policy Reinforcement Learning by Leveraging Pipeline Parallelism](<papers/03-scaling/training-optimization/PipelineRL: Faster On-policy Reinforcement Learning by Leveraging Pipeline Parallelism - 2509.19128.pdf>) — arXiv:2509.19128
 - [Scalable Training of Mixture-of-Experts Models with Efficient Sparsity](<papers/03-scaling/training-optimization/Scalable Training of Mixture-of-Experts Models with Efficient Sparsity - 2603.07685.pdf>) — arXiv:2603.07685
+- [HybridFlow: A Flexible and Efficient RLHF Framework](https://arxiv.org/abs/2409.19256) — arXiv:2409.19256 — *not currently in the repo as a PDF; arXiv link only*
+- [FP8-RL: A Practical and Stable Low-Precision Stack for LLM Reinforcement Learning](https://arxiv.org/abs/2601.18150) — arXiv:2601.18150 — *not currently in the repo as a PDF; arXiv link only*
+- [AReaL: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning](https://arxiv.org/abs/2505.24298) — arXiv:2505.24298 — *not currently in the repo as a PDF; arXiv link only*
+- [AsyncFlow: An Asynchronous Streaming RL Framework for Efficient LLM Post-Training](https://arxiv.org/abs/2507.01663) — arXiv:2507.01663 — *not currently in the repo as a PDF; arXiv link only*
 
 ## 04-efficiency
 
@@ -116,6 +125,12 @@ Preference optimization, RL, reasoning, and fine-tuning/adaptation.
 - [Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm](<papers/05-learning/reinforcement-learning/Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm - 1712.01815.pdf>) — arXiv:1712.01815
 - [DAPO: An Open-Source LLM Reinforcement Learning Framework](<papers/05-learning/reinforcement-learning/DAPO: An Open-Source LLM Reinforcement Learning Framework - 2503.14476.pdf>) — arXiv:2503.14476
 - [Reuse your FLOPs: Scaling RL on Hard Problems by Recycling Computation](<papers/05-learning/reinforcement-learning/Reuse your FLOPs: Scaling RL on Hard Problems by Recycling Computation - 2601.18795.pdf>) — arXiv:2601.18795
+- [The Art of Scaling Reinforcement Learning Compute for LLMs](https://arxiv.org/abs/2510.13786) — arXiv:2510.13786 — *not currently in the repo as a PDF; arXiv link only* (ScaleRL)
+- [Scaling Behaviors of LLM Reinforcement Learning Post-Training](https://arxiv.org/abs/2509.25300) — arXiv:2509.25300 — *not currently in the repo as a PDF; arXiv link only*
+- [IsoCompute Playbook: Optimally Scaling Sampling Compute for LLM RL](https://arxiv.org/abs/2603.12151) — arXiv:2603.12151 — *not currently in the repo as a PDF; arXiv link only*
+- [Scaling Up RL: Unlocking Diverse Reasoning in LLMs via Prolonged Training](https://arxiv.org/abs/2507.12507) — arXiv:2507.12507 — *not currently in the repo as a PDF; arXiv link only* (ProRL V1)
+- [ProRL V2 — Prolonged Training Validates RL Scaling Laws](https://hijkzzz.notion.site/prorl-v2) — no arXiv ID; Notion page unreachable, content unverified — *URL link only, not currently in the repo as a PDF*
+- [POLARIS: A POst-training recipe for scaling reinforcement Learning on Advanced ReasonIng modelS](https://hkunlp.github.io/blog/2025/Polaris/) — no arXiv ID; HKU NLP Group blog — *URL link only, not currently in the repo as a PDF*
 
 **reasoning/**
 - [Cognitive Behaviors that Enable Self-Improving Reasoners](<papers/05-learning/reasoning/Cognitive Behaviors that Enable Self-Improving Reasoners - 2503.01307.pdf>) — arXiv:2503.01307
@@ -154,6 +169,16 @@ Data curation/filtering, datasets, and tokenization.
 - [Multi-SWE-bench: A Multilingual Benchmark for Software Engineering](<papers/07-applications/agents-swe/Multi-SWE-bench: A Multilingual Benchmark for Software Engineering - 2504.02605.pdf>) — arXiv:2504.02605
 - [R2E-Gym: Procedural Environments and Hybrid Verifiers for Reinforcement Learning Agents](<papers/07-applications/agents-swe/R2E-Gym: Procedural Environments and Hybrid Verifiers for Reinforcement Learning Agents - 2504.07164.pdf>) — arXiv:2504.07164
 - [SWE-smith: Scaling Data for Software Engineering Agents](<papers/07-applications/agents-swe/SWE-smith: Scaling Data for Software Engineering Agents - 2504.21798.pdf>) — arXiv:2504.21798
+- [Kimi k1.5: Scaling Reinforcement Learning with LLMs](https://arxiv.org/abs/2501.12599) — arXiv:2501.12599 — *not currently in the repo as a PDF; arXiv link only*
+- [Kimi-Researcher: End-to-End RL Training for Emerging Agentic Capabilities](https://moonshotai.github.io/Kimi-Researcher/) — no arXiv ID; Moonshot AI blog — *URL link only, not currently in the repo as a PDF*
+- [Composer 2 Technical Report](https://arxiv.org/abs/2603.24477) — arXiv:2603.24477 — *not currently in the repo as a PDF; arXiv link only*
+- [Introducing Composer 2.5](https://cursor.com/blog/composer-2-5) — no arXiv ID; Cursor blog — *URL link only, not currently in the repo as a PDF*
+- [DeepSWE](https://www.together.ai/blog/deepswe) — no arXiv ID; Together AI / Agentica blog — *URL link only, not currently in the repo as a PDF*
+- [AutoForge: Environment Synthesis for Agentic RL](https://arxiv.org/abs/2512.22857) — arXiv:2512.22857 — *not currently in the repo as a PDF; arXiv link only*
+- [Agent-R1: Training Agents with End-to-End Reinforcement Learning](https://arxiv.org/abs/2511.14460) — arXiv:2511.14460 — *not currently in the repo as a PDF; arXiv link only*
+- [AgentRL: Scaling RL for Multi-Turn, Multi-Task Agents](https://arxiv.org/abs/2510.04206) — arXiv:2510.04206 — *not currently in the repo as a PDF; arXiv link only*
+- [The Landscape of Agentic Reinforcement Learning for LLMs: A Survey](https://arxiv.org/abs/2509.02547) — arXiv:2509.02547 — *not currently in the repo as a PDF; arXiv link only*
+- [Training Long-Context, Multi-Turn Software Engineering Agents with Reinforcement Learning](https://arxiv.org/abs/2508.03501) — arXiv:2508.03501 — *not currently in the repo as a PDF; arXiv link only*
 
 ## 08-evaluation
 
@@ -178,3 +203,5 @@ Titles and arXiv IDs above are read directly from filenames in `papers/`. If you
 A 2026-06-20 audit found that titles and arXiv IDs had been cyclically swapped across several filenames in `01-models`, `03-scaling`, `04-efficiency`, `05-learning`, and `08-evaluation` (the arXiv ID embedded in each filename was always correct for its PDF's actual content; only the title-text portion, and downstream wiki citations referencing these papers, had been swapped between files). All affected filenames, this index, and cross-references in `ai-machine-learning/wiki/` have been corrected and verified against arxiv.org and the PDFs' own content.
 
 Note: `papers/TO-BE-ORGANIZED/` contains 17 raw, untitled PDFs awaiting triage and is intentionally excluded from this index.
+
+A 2026-06-20 addition brought in 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources (ScaleRL, Scaling Behaviors, IsoCompute Playbook, ProRL V1/V2, Polaris, HybridFlow/verl, FP8-RL, AReaL, AsyncFlow, DeepSWE, AutoForge, Agent-R1, AgentRL, the Agentic RL survey, the long-context SWE-RL paper, Kimi K1.5, Kimi-Researcher, Composer 2/2.5, Olmo 3, MiniMax-M1/M2, and the Nemotron 3 family). Binary PDF downloads from arxiv.org are not reachable from this environment's sandbox (egress proxy blocks the domain), so all 25 are recorded as URL-only references, following the same convention already used for DeepSeek-V3. See [[rl-scaling-laws]] and [[agentic-rl]] in `ai-machine-learning/wiki/` for the full synthesis of this material, and the extended sections in [[rl-training-systems]], [[frontier-async-rl]], and [[model-report-case-studies]].

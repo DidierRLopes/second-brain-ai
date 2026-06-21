@@ -66,12 +66,13 @@ As the policy drifts from the behavior policy, IS ratios become extreme → inst
 | Framework | Notes |
 |---|---|
 | [AsyncRLHF](https://arxiv.org/abs/2410.18252) | First formal study of async RL for LLMs |
-| [AReaL](https://github.com/inclusionAI/AReaL) | Widely cited research implementation |
+| [AReaL](https://github.com/inclusionAI/AReaL) | Widely cited research implementation; full paper at [arxiv:2505.24298](https://arxiv.org/abs/2505.24298) — decoupled PPO clipped against a proximal policy, not the stale behavior policy; full coverage in [[rl-training-systems]] |
 | [LlamaRL](https://github.com/facebookresearch/llama-rl) | Meta Research |
 | [PipelineRL](https://arxiv.org/abs/2509.19128) | ServiceNow; adds in-flight weight syncing |
+| [AsyncFlow](https://arxiv.org/abs/2507.01663) | Huawei/MindSpeed-RL, Ascend NPUs; TransferQueue data-plane split, delayed parameter update; full coverage in [[rl-training-systems]] |
 | [SkyRL](https://github.com/NovaSky-AI/SkyRL) | NovaSky / UC Berkeley; modular for research |
 | [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Intellect-3 framework |
-| [VeRL](https://github.com/verl-project/verl) | ByteDance; easy to use, highly featured |
+| [VeRL](https://github.com/verl-project/verl) | ByteDance; easy to use, highly featured; foundational paper is HybridFlow ([arxiv:2409.19256](https://arxiv.org/abs/2409.19256)), 2026 low-precision update is FP8-RL ([arxiv:2601.18150](https://arxiv.org/abs/2601.18150)) — full coverage in [[rl-training-systems]] |
 | [TorchForge](https://github.com/meta-pytorch/torchforge) | Meta/PyTorch; uses TorchTitan + Monarch for fault-tolerant scheduling |
 | [Slime](https://github.com/THUDM/slime) | Zhipu/GLM-5; battle-tested production |
 | Forge | Minimax; battle-tested production |
@@ -218,7 +219,8 @@ Confirmed via ablations: at B=32, Sequence TIS collapses even before Token TIS. 
 
 ## Related Topics
 - [[alignment-methods]] — GRPO, PPO, RLVR, IcePop as the RL algorithms async pipelines execute
-- [[rl-training-systems]] — The systems layer: PipelineRL, rollout/trainer architectures, KL control, stale policies
+- [[rl-training-systems]] — The systems layer: PipelineRL, HybridFlow/verl, AReaL, AsyncFlow, FP8-RL, rollout/trainer architectures, KL control, stale policies
+- [[rl-scaling-laws]] — Compute scaling laws (ScaleRL, ProRL, Polaris) for the recipes these frameworks execute
 - [[icepop-stabilizing-rl-moe]] — IcePop/MIS masking technique, one of the main algorithmic controls surveyed here
 - [[on-policy-distillation]] — OPD/OPSD/MOPD as alternatives/complements to pure RL in the post-training stack
 - [[reasoning-models]] — What async RL is used to train: long-horizon reasoning models
@@ -231,6 +233,10 @@ Confirmed via ablations: at B=32, Sequence TIS collapses even before Token TIS. 
 - [Is Frontier Asynchronous RL Solved? — Luke J. Huang (May 31, 2026)](https://luk-huang.github.io/personal-website/blog/is-frontier-asynchronous-rl-solved.html)
 - [AsyncRLHF — arxiv:2410.18252](https://arxiv.org/abs/2410.18252)
 - [PipelineRL — arxiv:2509.19128](https://arxiv.org/abs/2509.19128)
+- [AReaL paper — arxiv:2505.24298](https://arxiv.org/abs/2505.24298) — not currently in the repo as a PDF; arXiv link only.
+- [AsyncFlow — arxiv:2507.01663](https://arxiv.org/abs/2507.01663) — not currently in the repo as a PDF; arXiv link only.
+- [HybridFlow / verl — arxiv:2409.19256](https://arxiv.org/abs/2409.19256) — not currently in the repo as a PDF; arXiv link only.
+- [FP8-RL — arxiv:2601.18150](https://arxiv.org/abs/2601.18150) — not currently in the repo as a PDF; arXiv link only.
 - [AReaL](https://github.com/inclusionAI/AReaL) | [LlamaRL](https://github.com/facebookresearch/llama-rl) | [SkyRL](https://github.com/NovaSky-AI/SkyRL) | [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | [VeRL](https://github.com/verl-project/verl) | [Slime](https://github.com/THUDM/slime)
 - [R3 (Rollout Routing Replay) — arxiv:2510.11370](https://arxiv.org/abs/2510.11370)
 - [GSPO — arxiv:2507.18071](https://arxiv.org/abs/2507.18071)

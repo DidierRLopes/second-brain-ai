@@ -126,6 +126,7 @@ The critical infrastructure insight: R2E-Gym and SWE-smith both demonstrate that
 - [[llm-agents]] — ReAct loop, planning, and tool use that underlies all SWE-agent scaffolds
 - [[agent-harness-engineering]] — Production harness design, error taxonomies, context strategies, and evaluation metrics that apply directly to SWE-agent pipelines
 - [[reasoning-models]] — The frontier models (Claude 3.7 Sonnet, GPT-4o, DeepSeek-R1) that generate expert trajectories and serve as SWE-agent backbones
+- [[agentic-rl]] — DeepSWE and the long-context SWE-RL paper train directly against R2E-Gym and SWE-bench Verified using the environments documented here
 
 ## Sources
 

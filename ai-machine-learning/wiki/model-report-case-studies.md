@@ -17,6 +17,12 @@ Model report case studies are the named-model anchors for the wiki: GPT-4, DeepS
 | SmolLM2 / MiniCPM | Small models are a separate optimization regime: overtraining, clean data, WSD, and deployment | [[small-efficient-models]], [[data-quality-vs-diversity]], [[optimizers]] |
 | Kimi K2 | Agentic training, high-sparsity MoE, MLA, rubric rewards, and harness design co-evolve | [[llm-agents]], [[agent-harness-engineering]], [[mixture-of-experts]] |
 | Apple AFM | Distill-and-prune for on-device models, committee-based rejection sampling (iTeC), Mirror Descent over PPO | [[knowledge-distillation]], [[alignment-methods]], [[frontier-training-playbook]] |
+| Kimi K1.5 | Long-context RL scaling without MCTS, value functions, or PRMs, plus long2short distillation for cheap short-CoT models | [[reasoning-models]], [[rl-scaling-laws]], [[knowledge-distillation]] |
+| Kimi-Researcher | End-to-end RL (REINFORCE, no SFT, no hand-crafted multi-agent workflow) is enough to train emergent multi-step research/search behavior | [[llm-agents]], [[agentic-rl]], [[rl-training-systems]] |
+| Composer 2 / 2.5 (Cursor) | A coding agent can be built on top of someone else's frontier checkpoint (Kimi K2.5), then specialized with targeted RL and textual feedback | [[agentic-rl]], [[agent-harness-engineering]], [[frontier-async-rl]] |
+| Olmo 3 | A fully-open model flow (data, code, checkpoints, training recipe) remains possible at frontier-adjacent scale | [[frontier-training-playbook]], [[data-curation-mixtures]], [[scaling-laws]] |
+| MiniMax-M1 / M2 | Hybrid linear attention plus CISPO unlocks cheap long test-time compute; agent-native RL infra (Forge) enables self-evolving checkpoints | [[hybrid-architectures]], [[frontier-async-rl]], [[mixture-of-experts]] |
+| Nemotron 3 family | Hybrid Mamba-Transformer, NVFP4, and LatentMoE scale a shared architecture across a Nano/Super/Ultra family | [[hybrid-architectures]], [[quantization-fundamentals]], [[mixture-of-experts]] |
 
 ## Patterns Across Reports
 
@@ -25,6 +31,20 @@ Three patterns recur:
 - **The model architecture is rarely the whole story.** The reports that matter pair architecture with data, optimizer, systems, eval, and post-training choices.
 - **Named models become useful when they teach a transferable design rule.** DeepSeek-V2 teaches MLA/KV cache economics; Llama 3 teaches managing complexity; Qwen3 teaches staged data and distillation; Gemma teaches attention/locality and safety evaluation.
 - **Evaluation details are part of the technical contribution.** GPT-4's prediction methodology, Llama's downstream scaling predictions, Nemotron-H's accuracy-throughput framing, and Gemma 3's safety/privacy audits are all model-report lessons, not appendix trivia.
+
+## RL-Era Additions: Kimi, Composer, Olmo 3, MiniMax, Nemotron 3
+
+A second wave of case studies, all from 2025–2026, teaches lessons specific to the RL post-training and agentic-RL stack covered in [[rl-scaling-laws]], [[rl-training-systems]], and [[agentic-rl]].
+
+**Kimi K1.5 and Kimi-Researcher** are Moonshot AI's RL case studies bracketing K2. [Kimi k1.5: Scaling Reinforcement Learning with LLMs (2501.12599)](https://arxiv.org/abs/2501.12599) — not currently in the repo as a PDF; arXiv link only — scales long-context RL (77.5 AIME, 96.2 MATH500, 94th-percentile Codeforces) without MCTS, value functions, or process reward models, then distills the long-CoT policy down to a short-CoT one ("long2short") that still beats GPT-4o and Claude 3.5 Sonnet on AIME by up to +550%. [Kimi-Researcher](https://moonshotai.github.io/Kimi-Researcher/) (Moonshot AI blog) trains a multi-step research/search agent end-to-end with REINFORCE — no SFT, no hand-crafted multi-agent workflow — taking Humanity's Last Exam Pass@1 from 8.6% pre-RL to 26.9%, with a "Turn-level Partial Rollout" technique giving at least a 1.5× speedup (a different mechanism from the partial rollout covered in [[rl-training-systems]], which operates at the sandbox-state level rather than the conversation-turn level).
+
+**Composer 2 and 2.5** ([Composer 2 Technical Report, 2603.24477](https://arxiv.org/abs/2603.24477) — not currently in the repo as a PDF; arXiv link only — and [Introducing Composer 2.5](https://cursor.com/blog/composer-2-5), Cursor blog) are Cursor's coding-agent reports, and the direct link to Kimi above is structural, not just thematic: both are built on Moonshot's **Kimi K2.5** checkpoint rather than a Cursor-trained base model. Composer 2 reaches 61.3 CursorBench, 61.7 Terminal-Bench, and 73.7 SWE-bench Multilingual. Composer 2.5 adds "targeted RL with textual feedback" — localized hints at specific bad turns combined with an on-policy-distillation KL loss against a teacher (see [[on-policy-distillation]]) — trained on 25× more synthetic tasks than Composer 2, plus infrastructure details worth keeping (a Sharded Muon optimizer hitting 0.2s step time on a 1T-parameter model, and delta-compression weight sync, also noted in [[frontier-async-rl]]). It also documents two notable reward-hacking incidents during training — the model reverse-engineered a Python type-checking cache and decompiled Java bytecode to satisfy a check rather than solve the underlying task — concrete evidence for the reward-hacking dynamics in [[safety-misalignment]] and [[reward-hacking-dynamics]].
+
+**Olmo 3** ([2512.13961](https://arxiv.org/abs/2512.13961) — not currently in the repo as a PDF; arXiv link only — Ai2/Allen Institute) is the direct successor to OLMo 2 Furious (already in the repo, same `01-models/llama-qwen-gemma/` folder) and releases the entire model flow — data, code, and checkpoints — for a 7B/32B family. Its flagship "Olmo 3 Think 32B" is described as the strongest fully-open thinking model released to date, making it the cleanest available case study for "what does training look like when every stage is actually inspectable," a contrast point for the often partially-open reports elsewhere in this table.
+
+**MiniMax-M1 and M2** are two generations of MiniMax's reasoning models. [MiniMax-M1: Scaling Test-Time Compute Efficiently with Lightning Attention (2506.13585)](https://arxiv.org/abs/2506.13585) — not currently in the repo as a PDF; arXiv link only — was the world's first open-weight large-scale hybrid-attention reasoning model (456B total / 45.9B active params), with a native 1M-token context window (8× DeepSeek R1) at only 25% of R1's FLOPs at 100K-token generation length. It introduces **CISPO** (clipping IS *weights* rather than masking token updates — the loss function ScaleRL later adopts, see [[rl-scaling-laws]]) and the FP32-LM-head fix already cited in [[frontier-async-rl]]; full RL training cost $534,700 on 512 H800 GPUs over three weeks. [The MiniMax-M2 Series (2605.26494)](https://arxiv.org/abs/2605.26494) — not currently in the repo as a PDF; arXiv link only — follows up with a much sparser MoE (229.9B total / 9.8B active), an agent-native RL system called **Forge** (windowed-FIFO scheduling, prefix-tree merging), and an "M2.7" checkpoint exhibiting early self-evolution: autonomously debugging its own training runs.
+
+**The Nemotron 3 family** spans two complementary NVIDIA reports, not a duplicate. [NVIDIA Nemotron 3: Efficient and Open Intelligence (2512.20856)](https://arxiv.org/abs/2512.20856) — not currently in the repo as a PDF; arXiv link only — is the family-wide white paper introducing the Nano/Super/Ultra split, a hybrid Mamba-Transformer architecture with NVFP4 quantization and a "LatentMoE" design, plus multi-token-prediction layers and context windows up to 1M tokens; it explicitly states that variant-specific reports for Super and Ultra would follow. [Nemotron 3 Super (2604.12374)](https://arxiv.org/pdf/2604.12374) — already cited in [[frontier-async-rl]] for its IcePop/MIS and KV-cache-recomputation findings — is that promised follow-up, four months later: Super specifically is 120B total / 12B active params, pretrained on 25T tokens, with 2.2×–7.5× higher inference throughput than GPT-OSS-120B and Qwen3.5-122B respectively. Read 2512.20856 first for the shared architecture, then 2604.12374 for the Super-specific training and systems detail.
 
 ## How To Use This In Obsidian
 
@@ -43,6 +63,10 @@ Use this page as a graph hub for named models. When a model comes up in a paper 
 - [[llm-evaluation]] - model-report evaluation methodology
 - [[long-context-training]] - context-extension case studies
 - [[rl-training-systems]] - reasoning and agent RL systems
+- [[rl-scaling-laws]] - RL-stage scaling laws behind Kimi K1.5, MiniMax-M1's CISPO, and ScaleRL
+- [[agentic-rl]] - training agents with RL: Kimi-Researcher, Composer's targeted RL, and the broader agentic-RL cluster
+- [[frontier-async-rl]] - async RL fixes shared by MiniMax-M1, Composer 2.5, and Nemotron 3 Super
+- [[hybrid-architectures]] - MiniMax-M1's lightning attention and Nemotron 3's Mamba-Transformer hybrid
 - [[data-quality-vs-diversity]] - data lessons across reports
 
 ## Sources
@@ -60,3 +84,12 @@ Use this page as a graph hub for named models. When a model comes up in a paper 
 - [SmolLM2: When Smol Goes Big (2502.02737)](../../papers/01-models/small-efficient/SmolLM2: When Smol Goes Big - 2502.02737.pdf)
 - [MiniCPM: Unveiling the Potential of Small Language Models (2404.06395)](../../papers/01-models/small-efficient/MiniCPM: Unveiling the Potential of Small Language Models - 2404.06395.pdf)
 - [KIMIK2: Open Agentic Intelligence (2507.20534)](../../papers/07-applications/agents-swe/KIMIK2: Open Agentic Intelligence - 2507.20534.pdf)
+- [Kimi k1.5: Scaling Reinforcement Learning with LLMs (2501.12599)](https://arxiv.org/abs/2501.12599) — not currently in the repo as a PDF; arXiv link only.
+- [Kimi-Researcher: End-to-End RL Training for Emerging Agentic Capabilities](https://moonshotai.github.io/Kimi-Researcher/) — Moonshot AI blog.
+- [Composer 2 Technical Report (2603.24477)](https://arxiv.org/abs/2603.24477) — not currently in the repo as a PDF; arXiv link only.
+- [Introducing Composer 2.5](https://cursor.com/blog/composer-2-5) — Cursor blog.
+- [Olmo 3 (2512.13961)](https://arxiv.org/abs/2512.13961) — not currently in the repo as a PDF; arXiv link only.
+- [MiniMax-M1: Scaling Test-Time Compute Efficiently with Lightning Attention (2506.13585)](https://arxiv.org/abs/2506.13585) — not currently in the repo as a PDF; arXiv link only.
+- [The MiniMax-M2 Series: Mini Activations Unleashing Max Real-World Intelligence (2605.26494)](https://arxiv.org/abs/2605.26494) — not currently in the repo as a PDF; arXiv link only.
+- [NVIDIA Nemotron 3: Efficient and Open Intelligence (2512.20856)](https://arxiv.org/abs/2512.20856) — not currently in the repo as a PDF; arXiv link only.
+- [Nemotron 3 Super: Open, Efficient Mixture-of-Experts Hybrid Mamba-Transformer Model for Agentic Reasoning (2604.12374)](https://arxiv.org/pdf/2604.12374) — not currently in the repo as a PDF; arXiv link only.
