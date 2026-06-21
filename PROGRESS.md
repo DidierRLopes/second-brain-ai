@@ -1,6 +1,6 @@
 # ML Knowledge Base — Topic Coverage Progress
 
-Last updated: 2026-06-20 (gap audit pass)
+Last updated: 2026-06-21 (depth audit pass)
 
 Legend: ✅ Covered | 🔄 Partial | ❌ Missing
 
@@ -176,3 +176,11 @@ Six genuinely missing concepts were found via web research (none present anywher
 - **MXFP4 / NVFP4** — hardware-native 4-bit microscaling float formats (OCP vs NVIDIA Blackwell) → [[quantization-fundamentals]]
 - **TurboQuant / PolarQuant** — near-optimal vector quantization for KV cache (Google, ICLR/AISTATS 2026) → [[kv-cache]]
 - **Mem0 / Zep** — production agent memory layers (extract/update vs temporal knowledge graph) → [[llm-agents]]
+
+## 2026-06-21 Gap Audit (Depth Pass)
+
+This was a depth audit, not a coverage audit: no new topics were added, and the Summary counts above (136/136 covered) are unchanged. The previous pass (2026-06-20) only checked that every raw source and paper *resolved* to a wiki section; it didn't check whether that section captured the paper in full.
+
+Between the two audits, the 15 PDFs sitting in `papers/TO-BE-ORGANIZED/` were filed (`papers/` went from 73 → 88 PDFs). This pass re-read the full text of all 15 newly-filed papers and diffed it against the wiki paragraphs written for them. 14 of 15 had captured the headline mechanism/numbers but missed secondary results, ablations, or stated limitations. Extended (not replaced) the existing sections with that missing depth for: u-μP, CompleteP, Pre-training under infinite compute, Cartridges, Do LMs Need Sleep?, IndexCache, AutoHarness, Meta-Harness, ECHO, Long-Horizon Q-Learning, Self-Distilled Policy Gradient, Memorization Dynamics in KD, Qwen-VLA, and Self-Revising Discovery Systems for Science — touching [[agent-harness-engineering]], [[agentic-rl]], [[ai-rd-automation]], [[attention-variants]], [[hybrid-architectures]], and [[knowledge-distillation]]. POSTTRAINBENCH was verified already thorough; no changes needed.
+
+All new citations were verified to resolve to existing local PDFs and all wiki-links to resolve to existing pages.
