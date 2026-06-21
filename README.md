@@ -10,7 +10,7 @@ A personal AI/ML "second brain" — raw sources get distilled into a cross-linke
 - **`papers/`** — 88 arXiv papers organized into thematic folders, indexed in `PAPERS_INDEX.md`. **Not pushed to git** — see below.
 - **`PROGRESS.md`** — topic-coverage tracker, including periodic gap-audit notes.
 - **`references/starter-prompts.md`** — the prompts used to scrape sources, compile the wiki, query it, and run a monthly health check.
-- **`.claude/skills/teach/`** — a Claude Code skill for personalized, mission-tied lessons drawn from this repo.
+- **`.claude/skills/`** — Claude Code skills: `teach/` (personalized, mission-tied lessons drawn from this repo), `interactive-explainer/` (standalone explorable visualizations of concepts), `handoff/` (session-continuity docs), `git-guardrails-claude-code/` (blocks destructive git commands — installed at project scope in `.claude/settings.json`).
 
 ## Why `papers/` isn't pushed
 
