@@ -48,6 +48,12 @@ Sparse activation creates a **parameter-compute mismatch**: an MoE has to store 
 
 The practical stack is therefore more than "add experts." Megatron-Core's answer is Expert Parallelism plus **Parallel Folding**, which decouples attention-layer and MoE-layer parallelism so each can use a topology that fits its communication pattern. It then layers in grouped GEMM, fused router/permutation kernels, DeepEP/HybridEP dispatchers, activation recomputation/offload, CUDA Graphs for static parts, and FP8/FP4 recipes. This is why MoE architecture choices and training ops cannot be separated: higher sparsity improves the scaling law only if the dispatch, memory, and small-GEMM overheads are kept under control.
 
+### Wide Expert Parallelism in RL Training and Inference
+
+Prime Intellect's prime-rl 0.6.0 (see `raw/primeintellect-rl-at-1t-scale.md` and [[rl-training-systems]] § prime-rl 0.6.0) gives the memory wall a concrete number on the training side: for an 800B-parameter, 78-layer MoE with FP32 master weights, all-gathering a single full layer under FSDP costs roughly `(800B × 4) / 78 ≈ 40GB`, and with one layer of FSDP prefetch overlap that's ~80GB just for active-layer weights — untenable at 1T+ scale. Expert Parallelism sidesteps this by never gathering the full layer: at EP=8, tokens are dispatched and combined via all2all instead, since experts (not attention weights) dominate layer memory. prime-rl supports two EP backends with opposite scaling behavior — **torch-native all2all** is slightly faster within a single node (e.g. EP=8), but **DeepEP** wins by a large margin once EP spans multiple nodes.
+
+On the inference side, RL rollout generation optimizes for *throughput* rather than latency (unlike user-facing serving), which favors **Wide EP** — large-scale expert parallelism spanning ≥32 GPUs, combined with a large data-parallel rank (e.g. 32) so that a large group of GPUs, each holding a different subset of experts, each acts as its own serving endpoint, synchronized per-layer through dispatch/combine. This is the same communication-wall tradeoff as training-side EP, but tuned for rollout throughput instead of memory ceiling.
+
 ## Load Balancing (Non-Negotiable)
 
 If load balancing fails, training and inference efficiency plummet — and so does effective learning capacity (a few popular experts absorb most updates; others go untrained). Several strategies:
@@ -110,6 +116,8 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - [[scaling-laws]] — MoE offers a different scaling trajectory than dense; Kimi K2's sparsity-driven design
 - [[inference-optimization]] — MoE serving needs care due to large total parameter counts
 - [[frontier-training-playbook]] — where MoE sits in the architecture decision tree
+- [[rl-training-systems]] — prime-rl's Wide EP and FSDP+EP memory math for training/serving trillion-parameter MoE models in RL
+- [[kv-cache]] — Context Parallelism (Ring Attention/Ulysses/custom DSA) as the sequence-side counterpart to EP's expert-side sharding
 
 ## Sources
 
@@ -125,3 +133,4 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - Kimi K2 technical report (sparsity 48, 384 experts, MuonClip).
 - Ant Group MoE study (granularity vs efficiency leverage).
 - GLaM (arxiv:2112.06905).
+- "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md` — Wide EP for RL inference throughput, and the FSDP+EP memory math (800B params/78 layers/~40GB all-gather buffer) for RL training.

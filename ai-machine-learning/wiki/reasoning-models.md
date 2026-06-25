@@ -2,6 +2,10 @@
 
 Reasoning models represent a paradigm shift from standard LLMs: instead of generating answers in a single forward pass, they spend variable compute "thinking" — generating internal chains of reasoning before producing a final answer. More thinking time generally produces better answers, a property called **test-time compute scaling**.
 
+## The Test-Time Scaling Wave (Late 2024 – Feb 2025)
+
+NVIDIA's explainer on the three AI scaling laws ([How Scaling Laws Drive Smarter, More Powerful AI](../../ai-machine-learning/raw/nvidia-ai-scaling-laws.md)) frames test-time scaling ("long thinking") as the third compute axis alongside pretraining and post-training scaling — see [[scaling-laws]] for the full taxonomy. Their headline estimate: a hard reasoning query **can require over 100x the compute of a single traditional inference pass**, and can take the model multiple minutes or even hours to answer — a query a one-shot LLM would be unlikely to get right on the first try regardless. Named techniques: **chain-of-thought prompting** (decomposing a problem into simpler steps), **sampling with majority voting / self-consistency** (generating multiple responses and returning the most frequent answer), and **search** (exploring and scoring multiple paths through a tree-like structure of responses — the role MCTS plays below, in "what didn't work"). The models that made this framing mainstream all launched within weeks of each other in this window: OpenAI's o1-mini and o3-mini, DeepSeek-R1, and Google DeepMind's Gemini 2.0 Flash Thinking.
+
 ## DeepSeek-R1
 
 DeepSeek-R1 (January 2025) demonstrated perhaps the most surprising finding in reasoning: sophisticated reasoning behaviors — verification, reflection, exploring alternatives, backtracking — can **emerge purely from reinforcement learning** without any human-annotated reasoning demonstrations.
@@ -253,3 +257,4 @@ This debate is largely the same debate as [[agi-timelines]] — they are not sep
 - Demystifying Reasoning Models — Cameron R. Wolfe
 - Dwarkesh Podcast — Sutton, Karpathy, Schulman, Hassabis, Sholto/Trenton interviews (see `raw/dwarkesh-*`)
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`. Source for DeepSeek-R1 multi-stage pipeline, MCTS limitations, RLVR length control.
+- Kari Briski (NVIDIA), "How Scaling Laws Drive Smarter, More Powerful AI" (Feb 12, 2025) — test-time scaling taxonomy, 100x compute estimate, CoT/majority-voting/search technique menu. See `raw/nvidia-ai-scaling-laws.md`.

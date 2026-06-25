@@ -135,6 +135,7 @@ Policy lag is only one source of mismatch. A second class comes from the fact th
 Identical weights still cause ~10% of MoE routing decisions to diverge per forward pass, causing collapse. Fix: record inference routing masks and replay them during training.
 - [R3 (Rollout Routing Replay)](https://arxiv.org/abs/2510.11370)
 - [GSPO](https://arxiv.org/abs/2507.18071) first mentioned this, targeting it from the algorithm side via geometric-mean IS
+- **Production result (prime-rl 0.6.0):** Prime Intellect reports R3 reduces trainer/inference KL mismatch **by roughly an order of magnitude** in production GLM-5-scale training — a concrete number for this mechanism's effect, at the cost of routed-expert payloads reaching tens of Gbps (shape `[num_layers, top_k, seq_len]`, hundreds of GB), handled as opaque tensors processed only via PyTorch ops to avoid Python/event-loop overhead. See `raw/primeintellect-rl-at-1t-scale.md` and [[rl-training-systems]] § prime-rl 0.6.0. The same release also gives the "policy-lag cutoff (GLM-5)" row above a concrete name: `max_off_policy_steps`, paired with a KV-cache salt that forces new rollouts to populate a fresh KV cache rather than reuse one built by a mixture of policy versions.
 
 ### Token-In Token-Out (TITO)
 Tokenizers have hysteresis — without TITO, tokenization discrepancies silently corrupt log-probability computation between rollout and trainer. References:
@@ -261,3 +262,4 @@ Confirmed via ablations: at B=32, Sequence TIS collapses even before Token TIS. 
 - [Qi et al. FP16 — arxiv:2510.26788](https://arxiv.org/abs/2510.26788)
 - [Prime Intellect Renderers](https://www.primeintellect.ai/blog/renderers)
 - "RL Systems Mind the Gap: Matching Trainer and Generator Throughput" — SemiAnalysis (June 16, 2026), `raw/semianalysis-rl-systems-mind-the-gap.md`. Source for environment-state-level staleness; full throughput-matching framework lives in [[rl-training-systems]].
+- "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md`. Source for R3's order-of-magnitude KL-mismatch reduction and `max_off_policy_steps` as GLM-5's policy-lag cutoff; full inference/training stack lives in [[rl-training-systems]].

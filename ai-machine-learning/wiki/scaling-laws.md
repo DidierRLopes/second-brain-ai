@@ -2,6 +2,16 @@
 
 Scaling laws describe the predictable relationship between model performance and model size, dataset size, compute budget, and increasingly the constraints around them: repeated data, inference cost, MoE sparsity, downstream-task emergence, and test-time search. Understanding these relationships is critical for making efficient training decisions worth millions of dollars, because the practical question is not just "how big can we train?" but "where does the next unit of compute buy the most capability?"
 
+## The Three Scaling Laws: Pretraining, Post-Training, Test-Time
+
+NVIDIA's explainer ["How Scaling Laws Drive Smarter, More Powerful AI"](../../ai-machine-learning/raw/nvidia-ai-scaling-laws.md) (Kari Briski, Feb 2025) gives a clean three-way taxonomy for where compute gets spent, which is a useful frame for the rest of this page:
+
+- **Pretraining scaling** — the original law (below): more data, more parameters, more compute predictably buys more capability, per Chinchilla's compute-optimal ratio.
+- **Post-training scaling** — once a foundation model is released, adapting it (fine-tuning, pruning, quantization, distillation, RLHF/RLAIF, best-of-n sampling, search; see [[alignment-methods]] and [[knowledge-distillation]]) for specific domains and use cases is its own compute sink. NVIDIA's estimate: the ecosystem of derivative models built around one foundation model can collectively cost **~30x more compute** than the original pretraining run, since a popular open-weight model spawns hundreds or thousands of fine-tunes.
+- **Test-time scaling** ("long thinking") — spending more compute *per query* at inference instead of at training time; see [[reasoning-models]] for the mechanics. NVIDIA's estimate: a hard reasoning query can need **over 100x the compute** of a single traditional inference pass.
+
+The three laws are complementary, not competing — different axes for spending compute, with frontier development blending all three (pretrain a strong base, post-train it into derivatives, then add test-time reasoning on top).
+
 ## Chinchilla: Compute-Optimal Training
 
 [Training Compute-Optimal Large Language Models / Chinchilla (2203.15556)](../../papers/03-scaling/scaling-laws/Training Compute-Optimal Large Language Models - 2203.15556.pdf) established the most influential scaling law: for a fixed compute budget, you should scale model size and training data **roughly equally**. The optimal ratio is approximately **20 tokens per parameter**.
@@ -112,6 +122,8 @@ Key sources to read in tandem with Chinchilla:
 - [[transformer-architecture]] — The architecture being scaled
 - [[mixture-of-experts]] — MoE offers a different scaling trajectory than dense models; Kimi K2 sparsity case
 - [[reasoning-models]] — Test-time compute as a third scaling axis
+- [[alignment-methods]] — Post-training scaling: RLHF/RLAIF, best-of-n sampling, search
+- [[knowledge-distillation]] — Post-training scaling: teacher/student distillation
 - [[agi-timelines]] — Where the scaling debate translates into timeline forecasts
 - [[dwarkesh-podcast]] — Primary source material for the scaling debate
 - [[inference-optimization]] — Why inference cost matters for scaling decisions
@@ -128,3 +140,4 @@ Key sources to read in tandem with Chinchilla:
 - [Scaling Scaling Laws with Board Games (2104.03113)](../../papers/03-scaling/training-optimization/Scaling Scaling Laws with Board Games - 2104.03113.pdf) — problem-size scaling and train-time/test-time compute tradeoffs in AlphaZero Hex.
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - Kimi K2 technical report (sparsity-driven scaling).
+- Kari Briski (NVIDIA), "How Scaling Laws Drive Smarter, More Powerful AI" (Feb 12, 2025) — pretraining/post-training/test-time taxonomy, 30x post-training and 100x test-time compute estimates. See `raw/nvidia-ai-scaling-laws.md`.

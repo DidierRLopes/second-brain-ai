@@ -56,6 +56,18 @@ A 2026 SemiAnalysis case-study piece (Chen, Wen & Patel — see `raw/semianalysi
 
 The staleness this introduces is structural, not just statistical: when a resumed rollout's sandbox holds edits/files from an *older* policy, the *current* policy continues from a state it didn't create, and the resulting advantage gets attributed to a trajectory the current policy only partially owns. This is a training-signal corruption distinct from the IS-ratio mismatch that trajectory- and token-level staleness produce, and isn't addressed by any of the IS-reshaping methods (TIS, IcePop/MIS, M2PO) surveyed in [[frontier-async-rl]] — it lives in the environment layer, not the policy-gradient estimator.
 
+## prime-rl 0.6.0: Inference and Training Optimizations at Trillion-Parameter Scale
+
+Prime Intellect's prime-rl 0.6.0 release (Prime Intellect Team & Matej Sirovatka, June 2026 — see `raw/primeintellect-rl-at-1t-scale.md`) gives the GLM-5 case study above (case study #2) a concrete systems explanation: **GLM-5.1 trains on SWE tasks at up to 131k sequence length, sub-5-minute step times, batch size 256 rollouts, on only 28 H200 nodes**, with step time staying flat as scale grows toward 1T parameters.
+
+On the **async RL mechanics**, prime-rl pushes new weights to inference as soon as an optimizer step finishes; in-flight rollouts keep their active prefix cache (so a single rollout's KV cache can mix tokens from multiple policy versions), while a **KV-cache salt** forces new rollouts to populate a fresh cache rather than reuse an older one. `max_off_policy_steps` drops requests from a policy that has fallen too far behind — the concrete instantiation of the "policy-lag cutoff" mechanism [[frontier-async-rl]] already attributes to GLM-5.
+
+On **inference**, prime-rl combines FP8 (via DeepEP/DeepGEMM kernels) with **Wide Expert Parallelism** — EP spanning ≥32 GPUs plus a large DP rank (e.g. 32), tuned for throughput rather than latency. **P/D disaggregation** matters because some model↔environment pairs hit a 4:1 prefill:decode token ratio (directly explaining why case study #2's prefill-heavy shift, from response/tool-call growth, justified a PD-disaggregated generator); disaggregating keeps decode latency predictable across the hundreds of turns a long agentic rollout can take. **KV cache offloading** is tiered to CPU/disk via either native vLLM offloading (one pool per DP-rank worker) or **Mooncake Store** (one centralized pool reachable from any worker — the better fit once routing gets sophisticated, e.g. the NVIDIA Dynamo router scoring on live KV-reuse/queue-depth/load metrics).
+
+The most direct extension of this wiki's framing is **router replay (R3)**: prime-rl reports it reduces trainer/inference KL mismatch **by roughly an order of magnitude** — a concrete production number for the mechanism [[frontier-async-rl]] already documents in its Systems-Level Fixes section. **FP8 training** (DeepGEMM block-scaled FP8, the DeepSeek V3 recipe) attacks the same trainer/inference mismatch problem from the numerics side instead of the routing side: it does not meaningfully raise throughput, but aligning trainer and inference precision (and sometimes kernels) further stabilizes training.
+
+On **training-side parallelism**, the trainer is built on [torchtitan](https://github.com/pytorch/torchtitan) and composes FSDP2 (`fully_shard`), Expert Parallelism, and Context Parallelism. The EP rationale is concrete: at 800B params / 78 layers / FP32 master weights, all-gathering one full layer costs roughly `(800B × 4) / 78 ≈ 40GB`; EP=8 avoids that by dispatching/combining tokens via all2all instead (torch-native all2all wins within a node, [[gpu-kernel-engineering|DeepEP]] wins once EP spans nodes). At 131k+ sequence length, activations rather than parameters dominate memory, which is what Context Parallelism shards away — see [[kv-cache]] for the Ring-Attention-vs-Ulysses comparison and GLM-5's custom DSA context-parallel scheme.
+
 ## Open-Source RL Framework Lineage
 
 DeepSeek R1's release triggered the open-source RL-infrastructure wave documented in the Open-Source Frameworks table in [[frontier-async-rl]]. **OpenRLHF** (PPO, REINFORCE++, then GRPO) was an early, influential framework; several of its maintainers went on to build **slime** and **verl** — seeding much of the open RL-training ecosystem and giving academic researchers practical access to RL-systems research that previously required frontier-lab-scale infrastructure.
@@ -168,6 +180,9 @@ RL training systems are where [[safety-misalignment]] can enter. Reward hacking 
 - [[safety-misalignment]] - reward hacking and context-dependent misalignment
 - [[llm-evaluation]] - trace analysis and open-world evals
 - [[agentic-rl]] - ECHO trains an auxiliary cross-entropy objective on environment-observation tokens alongside GRPO, turning terminal feedback already present in every rollout into dense supervision
+- [[kv-cache]] - Ring Attention vs. Ulysses context parallelism, and GLM-5's custom DSA context-parallel scheme, that prime-rl uses to train at 131k+ sequence length
+- [[mixture-of-experts]] - Wide EP and the FSDP+EP memory math behind prime-rl's expert-parallel training
+- [[gpu-kernel-engineering]] - DeepEP/DeepGEMM kernels and FP8 precision underlying prime-rl's inference and training stack
 
 ## Sources
 
@@ -184,3 +199,4 @@ RL training systems are where [[safety-misalignment]] can enter. Reward hacking 
 - "A Taxonomy of RL Environments for LLM Agents" — Han Lee (Mar 21, 2026): https://leehanchung.github.io/blogs/2026/03/21/rl-environments-for-llm-agents/
 - "The Ultimate Guide to RL Environments: Building and Scaling Them in the LLM Era" — Adithya S K & Sergio Paniego (May 5, 2026): https://huggingface.co/spaces/AdithyaSK/rl-environments-guide — companion code: https://github.com/adithya-s-k/RL_Envs_101
 - "RL Systems Mind the Gap: Matching Trainer and Generator Throughput" — Kimbo Chen, Cheang Kang Wen, Dylan Patel, SemiAnalysis (June 16, 2026). See `raw/semianalysis-rl-systems-mind-the-gap.md`. Source for the throughput-matching framework, the four production case studies, partial rollout/environment-state staleness, and the OpenRLHF→slime/verl lineage.
+- "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026). See `raw/primeintellect-rl-at-1t-scale.md`. Source for the GLM-5 131k-sequence-length/28-H200-node headline result, async RL mechanics (KV-cache salt, `max_off_policy_steps`), the inference stack (FP8, Wide EP, P/D disaggregation, KV cache offloading, request routing, R3 router replay's order-of-magnitude KL reduction), and the training stack (torchtitan, FSDP/EP/CP 3-D parallelism, FP8 training).

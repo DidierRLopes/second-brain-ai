@@ -8,6 +8,8 @@ During the attention computation, each layer produces key (K) and value (V) matr
 
 The prefill phase processes the entire prompt at once (compute-bound). The decode phase generates tokens one at a time, reading the entire KV cache at each step (memory-bandwidth bound). This distinction is critical for optimization.
 
+A concrete benchmark from [KV Caching Explained](../raw/kv-caching-explained-huggingface.md) (Hugging Face) puts a number on the difference: generating 300 new tokens from `HuggingFaceTB/SmolLM2-1.7B` on a single T4 GPU took **11.7s with KV caching enabled vs. 1min 1s without it — a ~5.21× speedup** — using nothing more than `transformers`' default `use_cache=True` behavior in `model.generate()`.
+
 ## Exact Memory Formula
 
 From "How to Scale Your Model" (Austin et al., 2025). Source: https://jax-ml.github.io/scaling-book/training
@@ -118,6 +120,15 @@ The method also works with **sliding-window eviction** (retaining the most recen
 
 Ring Attention (Liu et al., 2023) distributes the KV cache across GPUs in a ring topology with overlapped computation and communication. This makes context length scale linearly with the number of devices — enabling 1M+ token contexts by using more GPUs rather than bigger GPUs.
 
+### Ring Attention vs. Ulysses: Context Parallelism in RL Training
+
+Prime Intellect's prime-rl 0.6.0 (see `raw/primeintellect-rl-at-1t-scale.md` and [[rl-training-systems]] § prime-rl 0.6.0) frames the same idea as a training-time concern: at 131k+ sequence length, it's *intermediate activations*, not parameters, that dominate GPU memory, and Context Parallelism (CP) is the lever that shards the sequence dimension to control that cost. prime-rl supports two general CP schemes:
+
+- **Ring Attention** — the sequence stays sharded throughout the forward pass; at the attention layer, each rank holds its own Q/K/V shard and exchanges K/V with neighbors in a ring, overlapping communication with compute (as above).
+- **Ulysses** — the sequence also stays sharded through the forward pass, but at the attention layer an all2all flips the layout from sequence-sharded to head-sharded, attention is computed across the head dimension, and another all2all flips the layout back. This is prime-rl's default CP scheme and works well with non-standard attention (linear attention, Mamba-style SSMs, etc.).
+
+Neither scheme applies directly to **DeepSeek Sparse Attention (DSA)**, used by GLM-5 — see [[mixture-of-experts]] and the IndexCache discussion above for DSA's lightweight per-layer indexer. prime-rl's custom CP for DSA keeps sequences sharded through the projections, then gathers K/V across ranks (cheap, since K and V are already projected into a compressed latent space) so the sparse-attention indexer can see the *full* sequence and compute global top-k indices; core attention then runs only over that fixed-size index set, so its cost stays constant regardless of context length, and the whole scheme needs only one all-gather collective per attention layer — this is exactly the kind of context-parallel design that lets GLM-5 train on SWE-agent rollouts at up to 131k sequence length on 28 H200 nodes with sub-5-minute step times.
+
 ## KV Cache Behaviour at Long Context: Lessons from RULER
 
 [RULER (2404.06654)](../../papers/04-efficiency/context-extension/RULER: What's the Real Context Size of Your Long-Context Language Models - 2404.06654.pdf) benchmarked 17 long-context LLMs on retrieval, multi-hop tracing, aggregation, and QA tasks across 4K–128K. The headline finding: **only half of models claiming 32K+ context windows can actually maintain quality at 32K**, and almost all degrade well before their advertised limit. The gap between "claimed length" and "effective length" (length passing a Llama-2-7B@4K quality threshold) is brutal:
@@ -149,6 +160,8 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [[long-context-training]] — Context extension only works if KV memory and effective retrieval both hold up
 - [[inference-optimization]] — KV cache optimization is central to serving efficiency
 - [[quantization-fundamentals]] — KV cache can be quantized to reduce memory further
+- [[rl-training-systems]] — prime-rl's Ring Attention/Ulysses/custom-DSA context parallelism trains GLM-5 at 131k+ sequence length
+- [[mixture-of-experts]] — DSA's per-layer indexer and Wide EP are the MoE-side counterpart to CP's sequence-side sharding
 
 ## Sources
 - [How to Scale Your Model — Austin et al. (2025)](https://jax-ml.github.io/scaling-book/training) — exact KV size formula, LLaMA 70B example, decode step load time
@@ -165,5 +178,6 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [Cartridges: Lightweight and general-purpose long context representations via self-study (2506.06266)](../../papers/04-efficiency/context-extension/Cartridges: Lightweight and general-purpose long context representations via self-study - 2506.06266.pdf) — self-study context distillation into a trainable KV cache; 38.6× memory reduction, 26.4× throughput.
 - [IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse (2603.12201)](../../papers/04-efficiency/inference-kernels/IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse - 2603.12201.pdf) — cross-layer reuse of DeepSeek Sparse Attention's top-k indexer; up to 1.82× prefill speedup.
 - [Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference (2605.26099)](../../papers/04-efficiency/context-extension/Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference - 2605.26099.pdf) — sleep-time consolidation of evicted KV-cache context into SSM fast weights.
-- KV Caching Explained — Hugging Face
+- [KV Caching Explained — Hugging Face (Not Lain)](../raw/kv-caching-explained-huggingface.md) — step-by-step process, PyTorch `KVCache` pseudocode, `use_cache`/`cache_implementation` GenerationConfig example, 5.21× T4 benchmark on SmolLM2-1.7B.
 - Coding the KV Cache from Scratch — Sebastian Raschka
+- "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md` — Ring Attention vs. Ulysses context parallelism, and GLM-5's custom DSA context-parallel scheme, used to train at 131k+ sequence length.
