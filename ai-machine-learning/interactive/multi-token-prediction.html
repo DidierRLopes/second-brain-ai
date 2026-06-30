@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Token Prediction (MTP)</title>
+<!-- Wiki: [[frontier-training-playbook]] -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 2rem; font-weight: 700; color: #f8fafc; }
+  .subtitle { color: #94a3b8; margin-top: 8px; font-size: 1rem; line-height: 1.6; }
+  .badge { display: inline-block; background: #1e293b; color: #7dd3fc; font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; border: 1px solid #334155; margin-right: 8px; vertical-align: middle; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin: 32px 0 0; border-bottom: 1px solid #1e293b; }
+  .tab { padding: 10px 20px; cursor: pointer; color: #64748b; font-size: 0.9rem; border-radius: 6px 6px 0 0; transition: all .15s; border: 1px solid transparent; border-bottom: none; }
+  .tab:hover { color: #cbd5e1; }
+  .tab.active { color: #f8fafc; background: #1e293b; border-color: #334155; }
+
+  .panel { display: none; padding: 32px 0 0; }
+  .panel.active { display: block; }
+
+  /* Cards */
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card-title { font-size: 0.8rem; font-weight: 600; color: #7dd3fc; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+  /* Token row */
+  .token-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .token { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; min-width: 56px; border: 2px solid transparent; transition: all .3s; cursor: default; }
+  .token.input  { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .token.active { background: #1a3a2a; border-color: #22c55e; color: #86efac; box-shadow: 0 0 12px #22c55e55; }
+  .token.predict-1 { background: #3d1f00; border-color: #f97316; color: #fdba74; }
+  .token.predict-2 { background: #2d1a3d; border-color: #a855f7; color: #d8b4fe; }
+  .token.predict-3 { background: #1a2a3d; border-color: #06b6d4; color: #67e8f9; }
+  .token.dim  { background: #0f172a; border-color: #1e293b; color: #475569; }
+  .token.verify-ok { background: #14532d; border-color: #16a34a; color: #4ade80; }
+  .token.verify-fail { background: #450a0a; border-color: #dc2626; color: #fca5a5; }
+  .arrow { color: #475569; font-size: 1.1rem; }
+  .arrow.colored-1 { color: #f97316; }
+  .arrow.colored-2 { color: #a855f7; }
+  .arrow.colored-3 { color: #06b6d4; }
+
+  /* Side by side comparison */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+  /* Architecture diagram */
+  .arch-box { border: 2px solid; border-radius: 10px; padding: 14px 18px; text-align: center; font-size: 0.82rem; font-weight: 600; position: relative; }
+  .arch-main { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .arch-mtp1 { background: #3d1f00; border-color: #f97316; color: #fdba74; }
+  .arch-mtp2 { background: #2d1a3d; border-color: #a855f7; color: #d8b4fe; }
+  .arch-mtp3 { background: #1a2a3d; border-color: #06b6d4; color: #67e8f9; }
+  .arch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .arch-arrow { color: #475569; font-size: 1.4rem; line-height: 1; margin: 2px 0; }
+  .arch-label { font-size: 0.72rem; color: #64748b; margin-top: 6px; }
+
+  /* Controls */
+  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
+  button { padding: 8px 18px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.85rem; cursor: pointer; transition: all .15s; font-weight: 500; }
+  button:hover { background: #334155; }
+  button.primary { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+  button.primary:hover { background: #2563eb; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  label { color: #94a3b8; font-size: 0.85rem; }
+  select { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; }
+
+  /* Info box */
+  .info { background: #0f172a; border-left: 3px solid #3b82f6; padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: #94a3b8; line-height: 1.7; margin-top: 16px; }
+  .info strong { color: #e2e8f0; }
+  .info.orange { border-left-color: #f97316; }
+  .info.green  { border-left-color: #22c55e; }
+  .info.purple { border-left-color: #a855f7; }
+
+  /* Loss weight viz */
+  .loss-bar-wrap { margin: 12px 0; }
+  .loss-bar-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: #64748b; margin-bottom: 4px; }
+  .loss-bar-track { background: #0f172a; border-radius: 999px; height: 10px; }
+  .loss-bar-fill  { height: 10px; border-radius: 999px; transition: width .4s; }
+
+  /* Step indicator */
+  .step-dots { display: flex; gap: 8px; margin: 12px 0; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; transition: all .3s; }
+  .step-dot.active { background: #3b82f6; }
+  .step-dot.done   { background: #22c55e; }
+
+  /* Spec decoding */
+  .spec-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 0.85rem; }
+  .spec-label { color: #64748b; width: 110px; flex-shrink: 0; font-size: 0.78rem; }
+  .pass-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .pass { background: #14532d; color: #4ade80; }
+  .fail { background: #450a0a; color: #fca5a5; }
+
+  .highlight { color: #fbbf24; font-weight: 600; }
+  .mono { font-family: 'Courier New', monospace; font-size: 0.82rem; background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+
+  hr.divider { border: none; border-top: 1px solid #1e293b; margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div style="margin-bottom:6px">
+    <span class="badge">DeepSeek-V3</span>
+    <span class="badge">DeepSeek-V4</span>
+    <span class="badge">Training Technique</span>
+  </div>
+  <h1>Multi-Token Prediction <span style="color:#7dd3fc">(MTP)</span></h1>
+  <p class="subtitle">
+    Standard LLMs predict one token at a time. MTP adds <strong>D sequential prediction heads</strong> so the model
+    learns to anticipate further ahead — improving representations during training and enabling
+    speculative decoding at inference for free throughput.
+  </p>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('compare')">1 · Compare</div>
+    <div class="tab" onclick="switchTab('arch')">2 · Architecture</div>
+    <div class="tab" onclick="switchTab('stepper')">3 · Step Through</div>
+    <div class="tab" onclick="switchTab('speculative')">4 · Speculative Decoding</div>
+    <div class="tab" onclick="switchTab('numbers')">5 · By the Numbers</div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ PANEL 1: COMPARE -->
+  <div id="panel-compare" class="panel active">
+    <div class="split">
+      <div class="card">
+        <div class="card-title">Standard Next-Token Prediction</div>
+        <div class="token-row" id="std-row"></div>
+        <div class="info" style="margin-top:16px">
+          At position <strong>t</strong>, the model sees tokens 1…t and predicts token <strong>t+1</strong> only.
+          One loss signal per position. The model has no incentive to think ahead.
+        </div>
+        <div class="loss-bar-wrap" style="margin-top:16px">
+          <div class="loss-bar-label"><span>Loss signals per position</span><span>1</span></div>
+          <div class="loss-bar-track"><div class="loss-bar-fill" style="width:20%;background:#3b82f6"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Multi-Token Prediction (D = 3)</div>
+        <div class="token-row" id="mtp-row"></div>
+        <div class="info orange" style="margin-top:16px">
+          At position <strong>t</strong>, the model also predicts tokens <strong>t+2</strong> and <strong>t+3</strong>
+          via dedicated MTP modules. Each head feeds gradients back through the shared trunk.
+        </div>
+        <div class="loss-bar-wrap" style="margin-top:16px">
+          <div class="loss-bar-label"><span>Loss signals per position</span><span id="mtp-loss-count">4</span></div>
+          <div class="loss-bar-track"><div class="loss-bar-fill" style="width:80%;background:#f97316" id="mtp-loss-bar"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:0">
+      <div class="card-title">Animate</div>
+      <div class="controls">
+        <label>D (extra heads):</label>
+        <select id="d-select" onchange="renderCompare()">
+          <option value="1">D = 1</option>
+          <option value="2">D = 2</option>
+          <option value="3" selected>D = 3</option>
+        </select>
+        <label style="margin-left:12px">Focus position:</label>
+        <select id="pos-select" onchange="renderCompare()">
+          <option value="2">t = 3</option>
+          <option value="3" selected>t = 4</option>
+          <option value="4">t = 5</option>
+        </select>
+        <button class="primary" onclick="animateCompare()">▶ Animate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ PANEL 2: ARCHITECTURE -->
+  <div id="panel-arch" class="panel">
+    <div class="card">
+      <div class="card-title">MTP Architecture — Sequential Modules</div>
+      <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; margin-top:8px">
+
+        <div class="arch-col" style="flex:1; min-width:180px">
+          <div class="arch-box arch-main" style="width:100%">
+            Main Transformer<br>
+            <span style="font-size:0.72rem; font-weight:400; color:#60a5fa">Embedding + N layers + LM Head</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-box arch-main" style="width:100%;font-size:0.72rem; padding:8px 12px; color:#60a5fa">
+            Hidden state <span class="mono">h_t</span>
+          </div>
+          <div class="arch-arrow">↓  ↓  ↓</div>
+          <div style="display:flex; gap:12px; width:100%; justify-content:center; flex-wrap:wrap">
+            <div class="arch-col">
+              <div class="arch-box arch-mtp1" style="width:120px; font-size:0.78rem">MTP Head 1<br><span style="font-weight:400; font-size:0.7rem">Emb + TF block + Head</span></div>
+              <div class="arch-label">predicts t+2</div>
+            </div>
+            <div class="arch-col">
+              <div class="arch-box arch-mtp2" style="width:120px; font-size:0.78rem">MTP Head 2<br><span style="font-weight:400; font-size:0.7rem">Emb + TF block + Head</span></div>
+              <div class="arch-label">predicts t+3</div>
+            </div>
+            <div class="arch-col">
+              <div class="arch-box arch-mtp3" style="width:120px; font-size:0.78rem">MTP Head 3<br><span style="font-weight:400; font-size:0.7rem">Emb + TF block + Head</span></div>
+              <div class="arch-label">predicts t+4</div>
+            </div>
+          </div>
+          <div class="arch-label" style="margin-top:16px; text-align:center">
+            All heads share the main model's <strong>embedding weights</strong>
+          </div>
+        </div>
+
+        <div style="flex:1; min-width:220px">
+          <div class="info">
+            <strong>What each MTP module contains:</strong><br><br>
+            • Its own <strong>embedding layer</strong> (shared weights with main model)<br>
+            • Its own lightweight <strong>transformer block</strong><br>
+            • Its own <strong>output projection / LM head</strong><br><br>
+            Each MTP module takes the main model's hidden state <span class="mono">h_t</span>
+            and the embedded token at offset <span class="mono">t+k</span>, then outputs
+            a distribution over vocabulary for position <span class="mono">t+k+1</span>.<br><br>
+            <strong>Why sequential, not parallel?</strong><br>
+            Module k feeds into module k+1. Each module can condition on the previous
+            module's output — so head 2 knows what head 1 predicted before it predicts t+3.
+            This respects the autoregressive dependency chain even across future positions.
+          </div>
+
+          <div class="info green" style="margin-top:16px">
+            <strong>Training objective:</strong><br>
+            <span class="mono">L_total = L_main + λ · (L_mtp1 + L_mtp2 + ... + L_mtpD)</span><br><br>
+            λ starts at <span class="highlight">0.3</span> and drops to <span class="highlight">0.1</span>
+            near the end of the LR schedule. Each L_mtp feeds gradients through
+            the MTP module AND back into the shared trunk, enriching the main model's
+            hidden representations.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ PANEL 3: STEPPER -->
+  <div id="panel-stepper" class="panel">
+    <div class="card">
+      <div class="card-title">Step Through — What Fires at Position t?</div>
+      <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:20px">
+        Use <strong>Next Step</strong> to walk through what happens when the model processes position t = 4 with D = 2 MTP heads.
+      </p>
+
+      <div class="step-dots" id="step-dots"></div>
+
+      <div id="step-visual" style="margin:24px 0"></div>
+
+      <div class="controls">
+        <button onclick="stepBack()" id="btn-back" disabled>← Back</button>
+        <button class="primary" onclick="stepForward()" id="btn-fwd">Next Step →</button>
+        <button onclick="resetStepper()">↺ Reset</button>
+      </div>
+
+      <div id="step-info" class="info"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ PANEL 4: SPECULATIVE DECODING -->
+  <div id="panel-speculative" class="panel">
+    <div class="card">
+      <div class="card-title">Inference: MTP Heads → Speculative Decoding</div>
+      <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:16px">
+        At inference the MTP modules aren't thrown away — they become <strong>draft generators</strong>.
+        The main model verifies all drafts in one forward pass. If they match, you get
+        multiple tokens for the cost of one.
+      </p>
+
+      <div id="spec-vis"></div>
+
+      <div class="controls" style="margin-top:20px">
+        <button class="primary" onclick="runSpec()">▶ Run speculative step</button>
+        <button onclick="resetSpec()">↺ Reset</button>
+        <label style="margin-left:12px">Accept rate:</label>
+        <select id="accept-rate" onchange="resetSpec()">
+          <option value="1.0">High (all accept)</option>
+          <option value="0.67" selected>Medium (2/3 accept)</option>
+          <option value="0.33">Low (1/3 accept)</option>
+        </select>
+      </div>
+
+      <div id="spec-info" class="info green"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Why This Doesn't Change the Output Distribution</div>
+      <div class="info">
+        The main model acts as a <strong>verifier</strong>. For each draft token, it checks: "would I have
+        generated this token with ≥ the draft probability?" If yes → accept. If no → reject and
+        sample from the corrected distribution. The math guarantees the joint distribution
+        of accepted tokens is <strong>identical</strong> to what the main model would produce without drafts —
+        you get throughput for free, with no quality tradeoff.
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ PANEL 5: NUMBERS -->
+  <div id="panel-numbers" class="panel">
+    <div class="card">
+      <div class="card-title">MTP in DeepSeek-V3 and V4</div>
+      <div class="split">
+        <div>
+          <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:16px"><strong style="color:#7dd3fc">DeepSeek-V3</strong> — introduced MTP in the DeepSeek series</p>
+          <div class="spec-row"><span class="spec-label">Model size</span><span>671B total / 37B active</span></div>
+          <div class="spec-row"><span class="spec-label">Training tokens</span><span>14.8T</span></div>
+          <div class="spec-row"><span class="spec-label">MTP heads (D)</span><span>1 (predicts t+2)</span></div>
+          <div class="spec-row"><span class="spec-label">MTP loss weight λ</span><span id="v3-lambda">0.3 → 0.1</span></div>
+          <div class="spec-row"><span class="spec-label">When λ drops</span><span>At LR decay start</span></div>
+          <div class="spec-row"><span class="spec-label">Training cost</span><span>~2.79M H800 GPU-hours</span></div>
+        </div>
+        <div>
+          <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:16px"><strong style="color:#7dd3fc">DeepSeek-V4</strong> — retained MTP from V3</p>
+          <div class="spec-row"><span class="spec-label">MTP retained?</span><span class="pass-badge pass">Yes</span></div>
+          <div class="spec-row"><span class="spec-label">MTP loss weight λ</span><span>0.3 → 0.1</span></div>
+          <div class="spec-row"><span class="spec-label">When λ drops</span><span>After LR decay starts</span></div>
+          <div class="spec-row"><span class="spec-label">New in V4</span><span style="color:#94a3b8; font-size:0.8rem">CSA/HCA replaces MLA; Muon optimizer; Hash-routed MoE</span></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="card-title" style="margin-top:4px">Loss Weight Schedule</div>
+      <p style="font-size:0.82rem;color:#64748b;margin-bottom:14px">λ is high during most of training (strong MTP signal), then reduced at LR decay so the main objective dominates at the end.</p>
+
+      <div id="lambda-viz"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Summary — Two Benefits, One Mechanism</div>
+      <div class="split">
+        <div class="info" style="margin:0">
+          <strong>During Training</strong><br><br>
+          • D extra cross-entropy losses per position<br>
+          • Gradients flow back through MTP heads into the main trunk<br>
+          • Forces hidden states <span class="mono">h_t</span> to encode information about future context<br>
+          • Richer, more predictive representations → better downstream quality
+        </div>
+        <div class="info green" style="margin:0">
+          <strong>During Inference</strong><br>
+          <br>
+          • MTP heads draft D tokens ahead cheaply<br>
+          • Main model verifies all D drafts in one pass<br>
+          • Accepted tokens are free — same quality, higher throughput<br>
+          • No architectural change needed at inference time
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ──────────────── TOKENS ────────────────
+const SENTENCE = ['The', 'cat', 'sat', 'on', 'the', 'mat', 'quietly'];
+const COLORS   = ['predict-1','predict-2','predict-3'];
+
+function tok(word, cls) {
+  return `<span class="token ${cls}">${word}</span>`;
+}
+function arrowEl(cls='') {
+  return `<span class="arrow ${cls}">→</span>`;
+}
+
+// ──────────────── TAB SWITCHING ────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['compare','arch','stepper','speculative','numbers'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+// ──────────────── PANEL 1: COMPARE ────────────────
+function renderCompare() {
+  const D   = parseInt(document.getElementById('d-select').value);
+  const pos = parseInt(document.getElementById('pos-select').value); // 0-indexed active pos
+  const len = 7;
+
+  // Standard row
+  let stdHtml = '';
+  for (let i = 0; i < len; i++) {
+    if (i < pos)        stdHtml += tok(SENTENCE[i], 'input');
+    else if (i === pos) stdHtml += arrowEl() + tok(SENTENCE[i], 'active');
+    else if (i === pos+1) stdHtml += arrowEl() + tok(SENTENCE[i], 'predict-1');
+    else                stdHtml += tok(SENTENCE[i], 'dim');
+    if (i < len-1 && i < pos) stdHtml += '';
+  }
+  document.getElementById('std-row').innerHTML = stdHtml;
+
+  // MTP row
+  let mtpHtml = '';
+  for (let i = 0; i < len; i++) {
+    if (i < pos)        mtpHtml += tok(SENTENCE[i], 'input');
+    else if (i === pos) mtpHtml += arrowEl() + tok(SENTENCE[i], 'active');
+    else if (i <= pos+1+D) {
+      const d = i - pos - 1;
+      mtpHtml += arrowEl(`colored-${Math.min(d+1,3)}`) + tok(SENTENCE[i], COLORS[Math.min(d,2)]);
+    } else {
+      mtpHtml += tok(SENTENCE[i], 'dim');
+    }
+  }
+  document.getElementById('mtp-row').innerHTML = mtpHtml;
+  document.getElementById('mtp-loss-count').textContent = D + 1;
+  document.getElementById('mtp-loss-bar').style.width = ((D+1)/5*100) + '%';
+}
+
+function animateCompare() {
+  const D = parseInt(document.getElementById('d-select').value);
+  let pos = 1;
+  const max = 5;
+  const interval = setInterval(() => {
+    document.getElementById('pos-select').value = pos;
+    renderCompare();
+    pos++;
+    if (pos > max) { clearInterval(interval); }
+  }, 700);
+}
+
+renderCompare();
+
+// ──────────────── PANEL 3: STEPPER ────────────────
+const STEPS = [
+  {
+    title: 'Input sequence arrives',
+    desc: 'The model receives tokens 1…4. Position t = 4 is the current focus. The main transformer processes the full sequence.',
+    render: () => {
+      let h = '<div class="token-row">';
+      ['The','cat','sat','on'].forEach((w,i) => {
+        h += tok(w, i<3 ? 'input' : 'active');
+      });
+      h += '</div><div style="margin-top:12px;font-size:0.8rem;color:#64748b">→ Main transformer computes hidden state <span class="mono">h_4</span></div>';
+      return h;
+    }
+  },
+  {
+    title: 'Main head predicts t+1',
+    desc: 'The main LM head uses h_4 to produce a distribution over the vocabulary. The top prediction is "the" (token 5). Loss L_main is computed and gradients flow back.',
+    render: () => {
+      let h = '<div class="token-row">';
+      ['The','cat','sat','on'].forEach((w,i) => h += tok(w, i<3?'input':'active'));
+      h += arrowEl('colored-1') + tok('the','predict-1');
+      h += '</div>';
+      h += '<div class="info" style="margin-top:12px;font-size:0.8rem">Main head output: <span class="mono">softmax(W_h · h_4)</span> → top token = "the"<br>Loss: <span class="mono">L_main = -log p("the" | h_4)</span></div>';
+      return h;
+    }
+  },
+  {
+    title: 'MTP Head 1 predicts t+2',
+    desc: 'MTP Head 1 takes h_4 and the embedded token at t+1 ("the"). Its own transformer block produces a new hidden state, then predicts token t+2 = "mat". Loss L_mtp1 is added to the total loss.',
+    render: () => {
+      let h = '<div class="token-row">';
+      ['The','cat','sat','on'].forEach((w,i) => h += tok(w, i<3?'input':'active'));
+      h += arrowEl('colored-1') + tok('the','predict-1');
+      h += arrowEl('colored-2') + tok('mat','predict-2');
+      h += '</div>';
+      h += '<div class="info orange" style="margin-top:12px;font-size:0.8rem">MTP Head 1: <span class="mono">h\'_4 = TF_block1(h_4, embed("the"))</span><br>Predicts: <span class="mono">softmax(W_1 · h\'_4)</span> → "mat"<br>Loss: <span class="mono">L_mtp1 = -log p("mat" | h\'_4)</span></div>';
+      return h;
+    }
+  },
+  {
+    title: 'MTP Head 2 predicts t+3',
+    desc: 'MTP Head 2 takes the output of Head 1 plus the embedded token at t+2 ("mat") and predicts t+3 = "quietly". This gradient path goes through both MTP modules and back into the main trunk.',
+    render: () => {
+      let h = '<div class="token-row">';
+      ['The','cat','sat','on'].forEach((w,i) => h += tok(w, i<3?'input':'active'));
+      h += arrowEl('colored-1') + tok('the','predict-1');
+      h += arrowEl('colored-2') + tok('mat','predict-2');
+      h += arrowEl('colored-3') + tok('quietly','predict-3');
+      h += '</div>';
+      h += '<div class="info purple" style="margin-top:12px;font-size:0.8rem">MTP Head 2: <span class="mono">h\'\'_4 = TF_block2(h\'_4, embed("mat"))</span><br>Predicts: "quietly"<br>Loss: <span class="mono">L_mtp2 = -log p("quietly" | h\'\'_4)</span></div>';
+      return h;
+    }
+  },
+  {
+    title: 'Total loss computed, gradients flow back',
+    desc: 'The three losses are combined with weighting λ = 0.3. Gradients from all three heads flow back into the shared trunk — forcing h_4 to encode richer, more "forward-looking" information.',
+    render: () => {
+      return `
+        <div class="info green">
+          <strong>Total loss at position t = 4:</strong><br><br>
+          <span class="mono">L_total = L_main + 0.3 × (L_mtp1 + L_mtp2)</span><br><br>
+          Gradient paths:<br>
+          <span style="color:#93c5fd">← Main head → h_4 → all previous layers</span><br>
+          <span style="color:#fdba74">← MTP Head 1 → h_4 → all previous layers</span><br>
+          <span style="color:#d8b4fe">← MTP Head 2 → MTP Head 1 → h_4 → all previous layers</span><br><br>
+          The trunk learns to pack more predictive signal into <span class="mono">h_4</span> because
+          it now serves three prediction objectives, not one.
+        </div>`;
+    }
+  }
+];
+
+let stepIdx = 0;
+
+function renderStepper() {
+  document.getElementById('step-visual').innerHTML = STEPS[stepIdx].render();
+  document.getElementById('step-info').innerHTML = `<strong>${STEPS[stepIdx].title}</strong><br><br>${STEPS[stepIdx].desc}`;
+  document.getElementById('btn-back').disabled = stepIdx === 0;
+  document.getElementById('btn-fwd').disabled  = stepIdx === STEPS.length - 1;
+
+  const dots = document.getElementById('step-dots');
+  dots.innerHTML = STEPS.map((_,i) =>
+    `<div class="step-dot ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : ''}"></div>`
+  ).join('');
+}
+
+function stepForward() { if (stepIdx < STEPS.length-1) { stepIdx++; renderStepper(); } }
+function stepBack()    { if (stepIdx > 0) { stepIdx--; renderStepper(); } }
+function resetStepper(){ stepIdx = 0; renderStepper(); }
+renderStepper();
+
+// ──────────────── PANEL 4: SPECULATIVE DECODING ────────────────
+const DRAFT_TOKENS = ['the', 'mat', 'quietly'];
+let specState = 'idle'; // idle | drafted | verified
+
+function resetSpec() {
+  specState = 'idle';
+  renderSpec();
+}
+
+function runSpec() {
+  if (specState === 'idle') {
+    specState = 'drafted';
+  } else if (specState === 'drafted') {
+    specState = 'verified';
+  } else {
+    specState = 'idle';
+  }
+  renderSpec();
+}
+
+function renderSpec() {
+  const rate = parseFloat(document.getElementById('accept-rate').value);
+  const accepts = DRAFT_TOKENS.map((_,i) => i/DRAFT_TOKENS.length < rate);
+  const firstFail = accepts.indexOf(false);
+  const accepted = firstFail === -1 ? accepts.length : firstFail;
+
+  let html = '';
+
+  if (specState === 'idle') {
+    html = `
+      <div class="spec-row"><span class="spec-label">Context so far</span>
+        <div class="token-row">${['The','cat','sat','on'].map(w=>tok(w,'input')).join('')}</div>
+      </div>
+      <div class="spec-row" style="margin-top:8px"><span class="spec-label">MTP heads</span>
+        <span style="color:#64748b;font-size:0.82rem">ready to draft D = 3 tokens ahead…</span>
+      </div>`;
+    document.getElementById('spec-info').innerHTML = 'Press <strong>Run speculative step</strong> to see the MTP heads draft candidate tokens in parallel.';
+  }
+
+  else if (specState === 'drafted') {
+    html = `
+      <div class="spec-row"><span class="spec-label">Context</span>
+        <div class="token-row">${['The','cat','sat','on'].map(w=>tok(w,'input')).join('')}</div>
+      </div>
+      <div class="spec-row" style="margin-top:4px"><span class="spec-label">MTP drafts →</span>
+        <div class="token-row">
+          ${DRAFT_TOKENS.map((w,i)=>`${arrowEl(`colored-${i+1}`)}${tok(w,COLORS[i])}`).join('')}
+        </div>
+      </div>
+      <div class="spec-row" style="margin-top:4px"><span class="spec-label">Main model</span>
+        <span style="color:#f97316;font-size:0.82rem">⏳ Verifying all 3 drafts in one forward pass…</span>
+      </div>`;
+    document.getElementById('spec-info').innerHTML = 'The MTP heads have drafted <strong>3 candidate tokens</strong> at very low cost. The main model will now verify them all in <strong>a single forward pass</strong>.';
+  }
+
+  else {
+    const failMsg = firstFail !== -1 ? `Token "${DRAFT_TOKENS[firstFail]}" rejected — main model resamples from corrected distribution.` : 'All tokens accepted! Output distribution is identical to greedy decoding.';
+    html = `
+      <div class="spec-row"><span class="spec-label">Context</span>
+        <div class="token-row">${['The','cat','sat','on'].map(w=>tok(w,'input')).join('')}</div>
+      </div>
+      <div class="spec-row" style="margin-top:4px"><span class="spec-label">Verification →</span>
+        <div class="token-row">
+          ${DRAFT_TOKENS.map((w,i)=>{
+            const ok = accepts[i] && (firstFail === -1 || i < firstFail);
+            return `${arrowEl(ok?'colored-1':'')}<span class="token ${ok?'verify-ok':'verify-fail'}">${w}</span><span class="pass-badge ${ok?'pass':'fail'}" style="margin-left:2px">${ok?'✓':'✗'}</span>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="spec-row" style="margin-top:8px"><span class="spec-label">Tokens gained</span>
+        <span style="color:#4ade80;font-weight:600">${accepted} accepted out of 3 drafts</span>
+      </div>`;
+    document.getElementById('spec-info').innerHTML = `<strong>Result: ${accepted} token${accepted!==1?'s':''} emitted for ~1 main-model forward pass.</strong><br><br>${failMsg}<br><br>Without MTP speculation: 1 forward pass → 1 token.<br>With MTP: 1 forward pass → up to ${DRAFT_TOKENS.length + 1} tokens. <span class="highlight">No quality change.</span>`;
+  }
+
+  document.getElementById('spec-vis').innerHTML = html;
+  const btnLabel = specState === 'idle' ? '▶ Run speculative step' : specState === 'drafted' ? '▶ Verify drafts' : '↺ Reset';
+  document.querySelector('#panel-speculative button.primary').textContent = btnLabel;
+}
+
+resetSpec();
+
+// ──────────────── PANEL 5: NUMBERS ────────────────
+function renderLambdaViz() {
+  const stages = [
+    { label: 'Warmup', frac: 0.1, lambda: 0.3 },
+    { label: 'Main training', frac: 0.7, lambda: 0.3 },
+    { label: 'LR decay', frac: 0.2, lambda: 0.1 },
+  ];
+  let html = '';
+  for (const s of stages) {
+    const pct = (s.lambda / 0.3 * 100).toFixed(0);
+    const color = s.lambda === 0.3 ? '#f97316' : '#3b82f6';
+    html += `
+      <div class="loss-bar-wrap">
+        <div class="loss-bar-label">
+          <span>${s.label} <span style="color:#475569;font-size:0.72rem">(~${(s.frac*100).toFixed(0)}% of training)</span></span>
+          <span style="color:${color}">λ = ${s.lambda}</span>
+        </div>
+        <div class="loss-bar-track" style="height:14px">
+          <div class="loss-bar-fill" style="width:${s.frac*100}%;background:${color};height:14px"></div>
+        </div>
+      </div>`;
+  }
+  document.getElementById('lambda-viz').innerHTML = html;
+}
+renderLambdaViz();
+</script>
+</body>
+</html>
