@@ -22,4 +22,4 @@ It's ~250MB of PDFs, which is more than is worth carrying in git history. The fo
 
 1. Drop a source into `raw/`, or ask the assistant to scrape a URL into it.
 2. Ask the assistant to compile/update the wiki from `raw/`.
-3. Query the wiki directly, or ask for a gap audit (cross-check `raw/`, `papers/`, and recent web sources against `wiki/` coverage) — see `references/starter-prompts.md` for the exact prompts.
+3. Query the wiki directly, or ask for a gap audit (cross-check `raw/`, `papers/`, and recent web sources against `wiki/` coverage) — see `references/starter-prompts.md` for the exact prompts..
