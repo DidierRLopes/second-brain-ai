@@ -1,9 +1,11 @@
 ---
 name: teach
-description: Teach the user a new skill or concept, within this workspace.
+description: Teach the user a new skill or concept, within this workspace. For quick one-off questions ("explain X", "compare X and Y") use direct Grep + Read instead — this skill is for multi-session deep learning (HTML lessons, learning records, mission tracking).
 disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
+
+> **Note:** `disable-model-invocation: true` means this skill cannot spawn subagents or call other models. All research must be done with direct file tools (Grep, Read, Glob) within the main conversation context.
 
 The user has asked you to teach them something. This is a stateful request - they intend to learn the topic over multiple sessions.
 

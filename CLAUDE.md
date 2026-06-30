@@ -2,23 +2,28 @@
 
 This repository is a personal knowledge base / teaching workspace.
 
-## Use the `teach` skill
+## Answering questions grounded in this repo
 
-A `teach` skill lives in `.claude/skills/teach/`. Use it whenever the user asks
-to learn, be taught, be quizzed, or otherwise asks a question that can be
-grounded in the material available in this repository (papers, references,
-indexes, and notes here).
+**Quick questions** ("explain X", "compare X and Y", "what is X") — do NOT
+invoke the `teach` skill and do NOT spawn subagents. Instead:
 
-Concretely, invoke the `teach` skill when the user:
+1. `Grep` for the topic across `ai-machine-learning/wiki/` and
+   `ai-machine-learning/raw/` (one call, seconds).
+2. `Read` the 2-4 most relevant files in parallel.
+3. Answer inline in the conversation, citing the source files.
 
-- asks you to teach, explain, walk through, or quiz them on a topic
-- asks a question whose answer should be grounded in the files in this repo
-  rather than your parametric knowledge
+This is fast, cheap, and correct for one-off questions.
 
-When teaching, follow the skill's philosophy: ground knowledge in trusted
-resources (never parametric guesses), tie every lesson to the user's mission,
-and produce self-contained lessons. Treat this directory as the teaching
-workspace described in `.claude/skills/teach/SKILL.md`.
+**Deep learning requests** ("teach me about X", "quiz me", "walk me through X
+over multiple sessions") — invoke the `teach` skill, which produces HTML
+lessons, tracks learning records, and manages a mission. Follow the skill's
+philosophy: ground knowledge in trusted resources (never parametric guesses),
+tie every lesson to the user's mission, and produce self-contained lessons.
+Treat this directory as the teaching workspace described in
+`.claude/skills/teach/SKILL.md`.
+
+If the `teach` skill fails (e.g. `disable-model-invocation` error), fall back
+to the quick-question flow above rather than spawning Explore subagents.
 
 ## Auto-ingest papers dropped into `papers/TO-BE-ORGANIZED/`
 
