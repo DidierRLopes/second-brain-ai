@@ -11,7 +11,7 @@
 | [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 18 (+4 URL-only) |
 | [04-efficiency](#04-efficiency) | quantization, context-extension, inference-kernels | 11 |
 | [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 22 (+6 URL-only) |
-| [06-data](#06-data) | curation-filtering, datasets, tokenization | 6 |
+| [06-data](#06-data) | curation-filtering, datasets, tokenization | 7 |
 | [07-applications](#07-applications) | agents-swe | 8 (+10 URL-only) |
 | [08-evaluation](#08-evaluation) | benchmarking, analysis, safety | 5 |
 
@@ -164,6 +164,7 @@ Data curation/filtering, datasets, and tokenization.
 - [FineWeb2: One Pipeline to Scale Them All](<papers/06-data/curation-filtering/FineWeb2: One Pipeline to Scale Them All - 2506.20920.pdf>) — arXiv:2506.20920
 - [MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection](<papers/06-data/curation-filtering/MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection - 2507.16812.pdf>) — arXiv:2507.16812
 - [A Bitter Lesson for Data Filtering](<papers/06-data/curation-filtering/A Bitter Lesson for Data Filtering - 2605.19407.pdf>) — arXiv:2605.19407
+- [How Can We Synthesize High-Quality Pretraining Data? A Systematic Study of Prompt Design, Generator Model, and Source Data](https://arxiv.org/abs/2604.13977) — arXiv:2604.13977 — *not currently in the repo as a PDF; arXiv link only*
 
 **datasets/**
 - [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](<papers/06-data/datasets/The Pile: An 800GB Dataset of Diverse Text for Language Modeling - 2101.00027.pdf>) — arXiv:2101.00027

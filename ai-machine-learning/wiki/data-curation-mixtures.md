@@ -72,6 +72,64 @@ Stage 1: 75/12/10/3 across English web / multilingual web / code / math.
 - **Code**: Stack v2 + StarCoder2 — 16 languages, GitHub PRs, Jupyter/Kaggle notebooks, issues, StackExchange. Notably, the recommended code mixture *degraded* English benchmarks; Stack-Edu (educationally filtered) was delayed to the late stages.
 - **Math**: FineMath3+, InfiWebMath3+, MegaMath, plus OpenMathInstruct and OpenMathReasoning.
 
+## FinePhrase: Synthetic Pretraining via Structured Rephrasing
+
+[How Can We Synthesize High-Quality Pretraining Data? (2604.13977)](https://arxiv.org/abs/2604.13977) is HuggingFace's systematic study of what actually matters when generating synthetic pretraining data. Across 90 experiments generating over 1 trillion tokens (~12.7 GPU years), they varied prompt format, generator model size, model family, and source data quality to isolate each factor's contribution. The result is the **FinePhrase** dataset: 339M documents from FineWeb-Edu rephrased into 1.35 billion samples / 486 billion tokens.
+
+### The Hierarchy of Variables
+
+In order of impact on downstream performance:
+
+1. **Prompt design** — by far the largest lever. Everything else is secondary.
+2. **Source data quality** — matters, but a strong prompt can make even low-quality sources work.
+3. **Generator model size** — provides zero benefit beyond ~1B parameters. SmolLM2-1.7B-Instruct was optimal and dominated all other model families tested.
+
+### Prompt Formats and Results
+
+Thirteen formats were tested (9 new + prior work from Nemotron, REWIRE, BeyondWeb). Only formats that **restructure** how knowledge is presented beat DCLM — polishing or cleaning the language without changing the structure consistently failed:
+
+| Format | Description | Beats DCLM? |
+|---|---|---|
+| **Table** | Aggregates scattered info into indexable units | Yes — best overall |
+| **FAQ** | Makes implicit questions explicit | Yes |
+| **Tutorial** | Externalizes procedural logic | Yes |
+| **Math** | Math-problem framing | Yes |
+| **Article** | Simple paraphrasing | Yes (marginal) |
+| **Commentary** | Review-style summary | Yes (marginal) |
+| **Discussion** | Conversational format | Yes (marginal) |
+| **Narrative** | Narrative retelling | Yes (marginal) |
+| Cleaning/polishing formats | Surface-level edits only | No |
+
+**Best result**: FinePhrase-Table → macro-average **17.18** on 12 lighteval benchmarks, which is +3.41 over DCLM and +3.63 over Nemotron-HQ-Synth.
+
+The final FinePhrase dataset uses the four top-performing structured formats: FAQ, Math, Table, and Tutorial.
+
+### Evaluation Methodology
+
+All experiments run the same eval pipeline:
+- **12 English lighteval tasks** evaluated automatically at checkpoints during pretraining.
+- Metrics: `prob_norm_token` per task, `agg_score_micro`, `agg_score_macro` (the primary comparison metric), and six category-level aggregates.
+- **DCLM** (a curated web baseline strong in commonsense) serves as the reference threshold.
+- Contamination auditing uses n-gram overlap detection against benchmark corpora.
+
+### Quality Filters Don't Transfer to Synthetic Data
+
+A critical finding: standard quality proxies that work for web data are nearly useless for evaluating synthetic outputs:
+- **FineWeb-Edu-score** correlation with downstream performance: **−0.08** (essentially random)
+- **DCLM-score** correlation: only **0.56–0.61**
+
+This means you cannot reuse web-data classifiers to select good synthetic documents. You must eval the actual training signal directly.
+
+### Source Data: Complementary, Not Decisive
+
+DCLM and FineWeb-Edu-HQ have complementary strengths — DCLM skews toward commonsense reasoning, FineWeb-Edu-HQ toward knowledge-heavy tasks. Neither dominates universally. More importantly: **with a strong structured prompt, even low-quality source documents produce competitive synthetic training data**. Source quality is secondary to prompt quality.
+
+### Efficiency
+
+- Generated 486B tokens in ~14,700 GPU hours using SmolLM2-1.7B
+- ~30× cheaper than REWIRE, ~13× cheaper than Cosmopedia
+- Compared to training on raw DCLM (free to collect), FinePhrase costs compute but gains +3.41 macro-average points
+
 ## Hermes 4: synthetic data via DataForge
 
 Nous's pipeline starts with DCLM/FineWeb data:
@@ -129,3 +187,4 @@ The paper's cleanest result is that standard causal masking lets unrelated previ
 - [The Pile: An 800GB Dataset of Diverse Text for Language Modeling (2101.00027)](../../papers/06-data/datasets/The Pile: An 800GB Dataset of Diverse Text for Language Modeling - 2101.00027.pdf) — 825 GiB foundational mixed-domain English corpus with 22 components.
 - [MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection (2507.16812)](../../papers/06-data/curation-filtering/MEGASCIENCE: Pushing the Frontiers of Large-Scale Data Collection - 2507.16812.pdf) — 1.25M science reasoning post-training mixture with textbook data, selection ablations, and LLM decontamination.
 - [Analysing The Impact of Sequence Composition on Language Model Pre-Training (2402.13991)](../../papers/08-evaluation/analysis/Analysing The Impact of Sequence Composition on Language Model Pre-Training - 2402.13991.pdf) — Packing strategies, BM25Chunk, and intra-document causal masking effects.
+- [How Can We Synthesize High-Quality Pretraining Data? (2604.13977)](https://arxiv.org/abs/2604.13977) — Prompt format dominates generator size and source quality; structured outputs (Table/FAQ/Tutorial/Math) beat DCLM; standard quality filters break on synthetic data.
