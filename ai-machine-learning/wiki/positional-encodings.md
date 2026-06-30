@@ -26,6 +26,40 @@ In practice, the matrix multiplication form is sparse, so an efficient realizati
 
 RoPE's key advantage is extensibility: the rotation framework lets you scale to longer contexts by modifying base frequencies (ABF, YaRN below).
 
+### RoPE, Block-Matrix Form and Implementation
+
+Written out explicitly as block-diagonal 2×2 rotations rather than the complex-exponential form above: at position `m`, dimension pair `i` (indices `(2i, 2i+1)` of the head dimension `H`) is rotated by angle `mθᵢ`, with `θᵢ = Θ^{-2i/H}` (`Θ` the base frequency hyperparameter):
+
+```
+R_m = blockdiag(..., R_m^(i), ...) ∈ R^(H×H),   R_m^(i) = [[cos(mθᵢ), -sin(mθᵢ)],
+                                                            [sin(mθᵢ),  cos(mθᵢ)]]
+q_m ← R_m q_m,   k_m ← R_m k_m
+```
+
+This is the same rotation as the `e^{imθ}` form above, just written as a real 2×2 matrix per dimension pair instead of a complex multiplication.
+
+**Caching**: precompute `cos(mθᵢ)`/`sin(mθᵢ)` for every `(position, index)` pair once at initialization, rather than recomputing per forward pass:
+
+```python
+positions = torch.arange(max_seq_len, device=device)              # shape (max_seq_len)
+thetas = self.theta ** (-torch.arange(0, d_k, 2, device=device) / d_k)  # shape (d_k // 2)
+angles = positions.unsqueeze(-1) * thetas.unsqueeze(0)
+```
+
+**Avoiding many small 2×2 matmuls**: reshape the head dimension into `(H/2, 2)` to extract even/odd elements, apply the rotation as elementwise multiplies, then re-interleave:
+
+```python
+x_pairs = x.reshape(*x.shape[:-1], -1, 2)
+x_even = x_pairs[..., 0]
+x_odd = x_pairs[..., 1]
+
+x_out_even = x_even * cos - x_odd * sin
+x_out_odd  = x_even * sin + x_odd * cos
+
+# torch.stack() adds a new dim; flatten re-interleaves even/odd
+rotated = torch.stack([x_out_even, x_out_odd], dim=-1).flatten(start_dim=-2)
+```
+
 ## Extending RoPE to Long Context
 
 During pre-training, models train on shorter contexts (quadratic attention is expensive; short contexts learn short-range correlations). At inference, rotation angles grow with sequence length:
@@ -115,6 +149,14 @@ Applies RoPE / NoPE within the *same* layer (rather than alternating across laye
 
 ALiBi (Press et al., 2022) takes a different approach: instead of adding positional information to embeddings, it applies linear position-dependent penalties directly to attention scores. Trained on 1024 tokens, a model can extrapolate to 2048, and trains 11% faster with 11% less memory than sinusoidal. Less common in frontier-2026 models compared to RoPE variants.
 
+CS224n's self-attention note (Hewitt, Stanford, 2023 draft) frames sinusoidal/learned position embeddings and ALiBi as the only two possible fixes to a concrete problem it proves directly: **self-attention by itself is provably order-invariant.** Worked example: "the oven cooked the bread so" vs. "the bread cooked the oven so" have different meanings, yet for the word "so," `α_{so,0} = exp(q_so^T k_the) / (exp(q_so^T k_the) + ... + exp(q_so^T k_bread))` is computed from a sum whose terms merely get reordered when the sentence is reordered — so every `α_{so,*}` weight is identical regardless of word order. Root cause given as two independent facts: non-contextual token embeddings `x_i = Ew_i` depend only on word identity (not position), and the attention operation itself has no positional dependence built in.
+
+The note frames the two fixes as exhaustive: **"(1) use vectors that are already position-dependent as inputs, or (2) change the self-attention operation itself."** Learned additive position embeddings (option 1, the approach in BERT) add a learned `P_i ∈ R^d` per position to `x_i` before attention runs. ALiBi (option 2) instead modifies the attention scores directly, with the formula given as:
+
+`α_i = softmax(k_{1:n} q_i + [-i, ..., -1, 0, -1, ..., -(n-i)])`
+
+i.e., add a bias vector that linearly penalizes attending to tokens farther away from position `i` (in either direction), applied on top of the raw dot-product scores `k_{1:n}q_i ∈ R^n` — no learned parameters, just a fixed distance penalty. The note's own editorial reaction to this working as well as it does: "it's odd that this works; but interesting!"
+
 ## Where Positional Encoding Sits in the Stack
 
 Positional encoding choices are **orthogonal but interacting** with [[attention-variants|attention pattern choices]]:
@@ -126,7 +168,7 @@ For long-context production: choose a positional encoding approach (RoPE + YaRN,
 
 ## Related Topics
 
-- [[transformer-architecture]] — The core architecture these encodings augment
+- [[transformer-architecture]] — The core architecture these encodings augment; CS224n's RNN-motivation and minimal-self-attention sections explain why position representations are needed at all
 - [[long-context-training]] — How RoPE/YaRN/RNoPE choices become full long-context training recipes
 - [[attention-variants]] — long-context attention patterns (SWA, chunked, DCA, interleaved); document masking
 - [[hybrid-architectures]] — linear-attention alternatives that handle long context structurally
@@ -140,8 +182,10 @@ For long-context production: choose a positional encoding approach (RoPE + YaRN,
 - [YaRN: Efficient Context Window Extension of Large Language Models (2309.00071)](../../papers/04-efficiency/context-extension/YARN: Efficient Context Window Extension of Large Language Models - 2309.00071.pdf) — NTK-by-parts + attention temperature, Dynamic YaRN.
 - [Effective Long-Context Scaling of Foundation Models / Llama Long (2309.16039)](../../papers/04-efficiency/context-extension/Effective Long-Context Scaling of Foundation Models - 2309.16039.pdf) — ABF base 10k→500k; data quality > data length; continual pre-training matches from-scratch at ~40% fewer FLOPs.
 - [How to Train Long-Context Language Models (Effectively) / ProLong (2410.02660)](<../../papers/04-efficiency/context-extension/How to Train Long-Context Language Models (Effectively) - 2410.02660.pdf>) — code repos + books, 60/40 long/short ratio, train longer than eval length, short SFT is enough.
+- Alisa Liu, "Book of LLMs" (Notion, alisawuffles.notion.site/alisa-s-book-of-llms) — the explicit block-diagonal 2×2 rotation-matrix formulation of RoPE and the cos/sin-caching + even/odd-interleave PyTorch implementation. See [`raw/alisa-liu-book-of-llms.md`](../raw/alisa-liu-book-of-llms.md).
 - [The Impact of Positional Encoding on Length Generalization in Transformers (2305.19466)](../../papers/02-architecture/attention-variants/The Impact of Positional Encoding on Length Generalization in Transformers - 2305.19466.pdf) — NoPE beats all explicit PEs at length generalization in decoder-only LMs.
 - [Rope to Nope and Back Again (2501.18795)](../../papers/02-architecture/attention-variants/Rope to Nope and Back Again: A New Hybrid Position Encoding for Efficient Context Scaling - 2501.18795.pdf) — RNoPE-SWA, division-of-labor mechanism, QK-Norm hurts long context.
 - [DeepSeek LLM: Scaling Open-Source Language Models with Longtermism (2401.02954)](../../papers/04-efficiency/context-extension/DeepSeek LLM: Scaling Open-Source Language Models with Longtermism - 2401.02954.pdf) — multi-step LR schedule that supports staged context extension.
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - SmolLM3 report (RNoPE adoption, 4k → 128k stage progression). See `raw/smollm3-hugging-face-report.md`.
+- [CS224n: Self-Attention & Transformers (Hewitt, Stanford, 2023 draft)](../raw/cs224n-self-attention-transformers.md) — source: https://web.stanford.edu/class/cs224n/readings/cs224n-self-attention-transformers-2023_draft.pdf — order-invariance proof for self-attention, the two-options framing (position-dependent inputs vs. modifying attention), and the explicit ALiBi bias-vector formula.

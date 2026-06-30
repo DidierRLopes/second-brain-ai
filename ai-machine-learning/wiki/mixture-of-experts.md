@@ -99,6 +99,10 @@ The `tanh` provides continuity and stability (vs `sign` which forces ±α update
 
 Some implementations use **learnable routing functions** that adapt during training; others incorporate **expert capacity constraints** that prevent any single expert from being overwhelmed. The key insight across methods: effective load balancing must operate using **global statistics across multiple batches**.
 
+### Hash Routing in Early Layers (DeepSeek-V4)
+
+DeepSeek-V4 (see [[model-report-case-studies]] § DeepSeek-V4) departs from learned routing in its first several Transformer blocks: those early MoE layers use **Hash routing**, assigning each token to an expert via a predefined hash of the token ID rather than a learned router affinity score. This sidesteps router-driven load imbalance and instability at the layers closest to the embedding table, where DeepSeek-V4's authors observed MoE outliers were most disruptive to training. Later layers keep the standard DeepSeekMoE learned router with auxiliary-loss-free bias balancing, augmented by the sequence-wise balance loss described above — so the model mixes deterministic and learned routing by depth rather than using one scheme uniformly.
+
 ## MuonClip for MoE Stability
 
 MoE models compound the attention-logit-explosion problem. **MuonClip** (Kimi K2) was developed in part because MoE expert-routing nondeterminism makes other stability techniques less reliable. See [[optimizers]] and [[training-stability]] for the details.
@@ -118,6 +122,7 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - [[frontier-training-playbook]] — where MoE sits in the architecture decision tree
 - [[rl-training-systems]] — prime-rl's Wide EP and FSDP+EP memory math for training/serving trillion-parameter MoE models in RL
 - [[kv-cache]] — Context Parallelism (Ring Attention/Ulysses/custom DSA) as the sequence-side counterpart to EP's expert-side sharding
+- [[model-report-case-studies]] — DeepSeek-V4's hash-routed early layers and sequence-wise balance loss in full model context
 
 ## Sources
 
@@ -134,3 +139,4 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - Ant Group MoE study (granularity vs efficiency leverage).
 - GLaM (arxiv:2112.06905).
 - "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md` — Wide EP for RL inference throughput, and the FSDP+EP memory math (800B params/78 layers/~40GB all-gather buffer) for RL training.
+- [DeepSeek-V4: Architecture and Training Breakdown](https://www.k-a.in/DeepSeek-V4.html) — third-party writeup of DeepSeek's technical report; not currently in the repo as a PDF. See `raw/deepseek-v4-analysis.md` — hash-routed early MoE layers and sequence-wise balance loss.

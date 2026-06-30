@@ -193,3 +193,52 @@ The policy gradient theorem underpins all of modern LLM alignment:
 - **GAE for process reward models**: when you have dense per-step rewards (process reward model, tool call success/failure), GAE estimates the advantage of each reasoning step
 
 See also: [[alignment-methods]], [[rl-training-systems]], [[frontier-async-rl]]
+
+---
+
+## CISPO and the Critic-Free Advantage Estimator Zoo
+
+Ivison's RL101 notes (see Sources) derive importance weighting for reusing stale rollouts and then build directly to **CISPO** (MiniMax et al., 2025, MiniMax-M1, arXiv:2501.08313), which he calls "pretty much one of the better algorithms out there right now." Once a trajectory's importance weight is factored token-wise as
+
+```
+w(τ) = π_θ(τ) / π_θ_old(τ) = Π_t  π_θ(a_t|s_t) / π_θ_old(a_t|s_t) = Π_t r_t(θ)
+```
+
+CISPO's loss applies a **stop-gradient to the ratio itself** rather than clipping it (contrast with PPO's `clip(r_t, 1-ε, 1+ε)`):
+
+```
+J_CISPO(θ) = E[ 1/Σ|o^i| · Σ_i Σ_t  sg(r_{i,t}(θ)) · Â_{i,t} · log π_θ(o^i_t | q, o^i_<t) ]
+```
+
+- Averages over both the group index *i* (multiple rollouts per prompt) and token position *t*.
+- `sg(·)` ("stop gradient") means the ratio still *scales* the loss but contributes no gradient through the logprobs used to compute it — only `log π_θ` is differentiated. This sidesteps PPO's clipping/step-size machinery entirely while still bounding the effective update via the ratio's magnitude.
+- The group-relative advantage is the same normalised form used by GRPO: `Â_{i,t} = (R_i - mean(R_1..R_G)) / std(R_1..R_G)` — i.e., the group's empirical mean/std *substitutes for* a learned value function, so no critic is needed.
+
+**Why a same-sample baseline is still valid (leave-one-out argument).** GRPO/REINFORCE++-style baselines average in the *current* sample's own reward, which looks like it should violate the rule that a baseline can't depend on the current action. Decomposing the batch-mean baseline `b(s_t) = (1/B)Σ_n G_t^n` against sample *x* resolves this:
+
+```
+G_t^x - b(s_t) = G_t^x - (1/B)Σ_n G_t^n = ((B-1)/B)·G_t^x  -  (1/B)Σ_{n≠x} G_t^n
+```
+
+The leave-one-out sum over `n≠x` is a legitimate baseline (independent of the current sample). The remaining `(B-1)/B · G_t^x` term only rescales the gradient by a constant — it doesn't bias the estimator, only the effective step size. This is why GRPO's plain batch-mean baseline still works, but **RLOO (Ahmadian et al., 2024, "Back to Basics," arXiv:2402.14740)** — which uses an explicit leave-one-out mean instead — is the technically cleaner choice, since it avoids the extra rescaling factor.
+
+**Other critic-free / alternative advantage estimators surveyed:**
+
+| Method | Idea |
+|---|---|
+| **VinePPO** (Kazemnejad et al., 2025, arXiv:2410.01679) | Token-level Monte Carlo rollouts to estimate the value function directly — "incredibly expensive but arguably the best way to do it." |
+| **GIGPO** (Feng et al., 2025, arXiv:2504.02763) | Groups similar *states* (via token similarity) to share advantage estimates; suited to agentic, state-based tasks like web navigation. |
+| **REINFORCE++** (Hu et al., 2025, arXiv:2501.03262) | Uses the batch-average reward as the value estimate — reasonable when tasks in a batch are similar in difficulty. |
+| **RLOO** (Ahmadian et al., 2024, arXiv:2402.14740) | GRPO without the std-normalisation, using leave-one-out instead of full-batch averaging. |
+
+This table sits alongside GRPO (see [[alignment-methods]]) as part of the broader move in LLM post-training away from learned critics toward purely sample-based, group-relative advantage estimates.
+
+---
+
+## Related Topics
+- [[alignment-methods]] — GRPO, RLHF/PPO pipeline, DAPO stability fixes, and where critic-free advantage estimators like CISPO and RLOO sit in the broader post-training toolkit
+- [[rl-training-systems]] — rollout freshness and off-policy correction infrastructure that the importance-weighting derivation here (and IcePop-style clipping) depends on
+- [[frontier-async-rl]] — asynchronous rollout/training pipelines where stale, off-policy data (and thus importance weighting) is the default rather than the exception
+
+## Sources
+- [Introduction to Policy Gradient for LMs](../../ai-machine-learning/raw/policy-gradient-ivison.md) — Hamish Ivison, ivison.id.au (Feb 9, 2026), https://ivison.id.au/2026/02/09/policy-gradient.html. Source for the MDP-to-LM mapping, the reward-to-go/causality and baselining derivations, the importance-weighting factorization, CISPO, the leave-one-out baseline-validity argument, and the VinePPO/GIGPO/REINFORCE++/RLOO survey.

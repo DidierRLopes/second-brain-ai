@@ -106,6 +106,33 @@ The most impactful single optimization. Reducing weights from 16-bit to 4-bit gi
 
 Use a small, fast "draft" model to generate candidate tokens, then verify them in a single forward pass of the large model. The large model can accept or reject multiple tokens at once, effectively running the small model's speed with the large model's quality. Achieves 2-3× speedup with mathematically guaranteed identical output — no quality compromise. Variants include **Medusa** (parallel prediction heads, 2.2-3.6× speedup without a separate draft model) and **EAGLE** (using early-exit features as the draft).
 
+### Acceptance/Rejection Rule and Why the Output Is Exact
+
+Using target model \(M_p\) (distribution \(p\)) and draft model \(M_q\) (distribution \(q\)), the drafter proposes \(\gamma\) tokens autoregressively; \(M_p\) then verifies all \(\gamma\) in one parallel forward pass structurally identical to prefill — the prefix plus the \(\gamma\) draft tokens is fed in as if it were a prompt, producing \(\gamma+1\) next-token distributions in a single pass (the last one a "bonus" distribution available for free if every draft is accepted).
+
+The per-token rule (speculative sampling): sample \(x \sim q\). If \(q(x) \le p(x)\), accept unconditionally. If \(q(x) > p(x)\), reject with probability \(1 - p(x)/q(x)\) and discard every token drafted after this position. On rejection, resample the replacement from the **adjusted distribution** \(p'(x) = \mathrm{norm}(\max(0, p(x) - q(x)))\) rather than from raw \(p(x)\).
+
+The reason for the adjusted distribution is a probability-accounting argument: the acceptance path alone delivers \(P(\text{accepted}, x) = q(x)\cdot\min(1, p(x)/q(x)) = \min(p(x), q(x))\) of the true probability mass for token \(x\). For the total output probability to equal \(p(x)\) exactly, the resample-on-rejection path must supply only the remainder \(p(x) - \min(p(x),q(x)) = \max(0, p(x)-q(x))\) — normalizing this gives \(p'(x)\). Resampling from raw \(p(x)\) instead would double-count mass already paid out by acceptance and bias the output (e.g., over-represent tokens where \(q(x) > p(x)\)). This is what makes speculative decoding's output distribution **exactly identical** to the target model's, not an approximation.
+
+### Acceptance Rate, Expected Tokens, and the Total-Variation Connection
+
+Define the position-level acceptance rate \(\beta = \sum_x \min(p(x), q(x))\) (equivalently \(\mathbb{E}_{x\sim q}[\min(1, p(x)/q(x))]\)), and \(\alpha = \mathbb{E}(\beta)\) as a single scalar measuring how well the drafter approximates the target on average. With i.i.d. per-position acceptance, the number of tokens \(N\) produced by one iteration with budget \(\gamma\) follows \(P(N=k) = \alpha^{k-1}(1-\alpha)\) for \(k = 1,\dots,\gamma\) and \(P(N=\gamma+1) = \alpha^\gamma\) (the bonus-token case), giving expected tokens per iteration:
+\[ E(N) = \sum_{j=0}^{\gamma} \alpha^j = \frac{1-\alpha^{\gamma+1}}{1-\alpha} \]
+
+\(\alpha\) connects directly to total variation distance: defining the midpoint distribution \(M(x) = (p(x)+q(x))/2\), the divergence \(D_{LK}(p,q) = \sum_x |p(x)-M(x)|\) reduces to \(\sum_x |p(x)-q(x)|/2\) — exactly the total variation distance, and equal to \(1 - \sum_x \min(p(x),q(x))\). So \(\alpha = 1 - \mathbb{E}[D_{LK}(p,q)]\): the acceptance rate is one minus the expected distributional distance between drafter and target. At \(\alpha=0\) the drafter provides zero benefit (same throughput as standard decoding, pure loss from drafting overhead); at \(\alpha=1\) every iteration yields the full \(\gamma+1\) tokens.
+
+### Wall-Time Improvement Formula
+
+With cost ratio \(c = T_{M_q}/T_{M_p}\) (drafter forward-pass time relative to target forward-pass time — in the original paper, always < 0.05), the wall-time improvement factor over standard decoding is:
+\[ \text{Improvement} = \frac{1-\alpha^{\gamma+1}}{(1-\alpha)(\gamma c + 1)} \]
+For the minimal case \(\gamma=1\) this simplifies to \(\frac{1+\alpha}{1+c}\) — a guaranteed speedup whenever \(\alpha > c\), i.e., whenever the drafter's acceptance rate exceeds its relative cost. High \(\alpha\) alone does not guarantee speedup; if \(\alpha < c\), verification overhead from a too-expensive drafter can erase the gains entirely.
+
+Compute overhead works in the opposite direction: with \(\mu = F_{M_q}/F_{M_p}\) (drafter-to-target ops ratio per token), total arithmetic operations increase by a factor of \(\frac{(1-\alpha)(\gamma\mu+\gamma+1)}{1-\alpha^{\gamma+1}}\) versus standard decoding — speculative decoding trades **more total FLOPs for less wall time**, which is favorable specifically because inference is memory-bandwidth-bound rather than FLOP-bound (evaluating \(M_p\) on \(\gamma+1\) positions costs the same single memory read as evaluating it on one).
+
+### Choosing \(\gamma\) and the Oracle Bound
+
+Larger \(\gamma\) increases expected tokens per iteration with diminishing returns, while iteration cost \(\gamma c + 1\) grows linearly — so when \(c=0\) (free drafter) larger \(\gamma\) is always at least as good, but for \(c>0\) there's an interior optimum. A worked example at \(\alpha=0.8\), \(c=0.02\) finds the speedup peaks near \(\gamma=10\) (improvement factor ≈3.81) and then declines as drafting overhead dominates (e.g., 3.32× by \(\gamma=25\)). There's a hard theoretical ceiling regardless of \(\gamma\): removing the per-step cap entirely (an oracle that drafts an unbounded number of tokens) gives \(E(N_{\text{oracle}}) = 1/(1-\alpha)\) — 5 tokens/iteration at \(\alpha=0.8\) — which no finite \(\gamma\) can exceed. This oracle is unrealizable (knowing the position-level acceptance rate in advance would itself require running \(M_p\)), but it bounds adaptive-\(\gamma\) schemes.
+
 ## Continuous Batching
 
 Instead of processing batches of fixed size, continuously add new requests and remove completed ones. This maximizes GPU utilization since different requests finish at different times. Implemented in vLLM, TGI, and most modern serving frameworks.
@@ -151,3 +178,4 @@ Instead of processing batches of fixed size, continuously add new requests and r
 - Continuous Batching — Hugging Face
 - The Llama Hitchhiking Guide to Local LLMs — Omar Sanseviero
 - [Interfaze: The Future of AI is Built on Task-Specific Small Models (2602.04101)](../../papers/04-efficiency/inference-kernels/Interfaze: The Future of AI is Built on Task-Specific Small Models - 2602.04101.pdf)
+- **Speculative Decoding - The Bits and the Bytes! (Part 1) — Aakash Kumar Nain (June 19, 2026)**, https://aakashkumarnain.github.io/posts/ml_dl_concepts/specdec_part1.html (`raw/speculative-decoding-aakashkumarnain-part1.md`). Source for the acceptance/rejection rule, the adjusted-distribution exactness proof, the acceptance-rate/total-variation-distance connection, the wall-time improvement and compute-overhead formulas, and the γ-choice/oracle-bound analysis above.

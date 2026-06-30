@@ -45,6 +45,35 @@ Starting from ∂L/∂aᴸ = 1, propagate backwards:
 
 **Computational graphs**: modern frameworks (PyTorch, JAX) build a dynamic computation graph during the forward pass and automatically compute gradients via autograd. You just define the forward computation; backprop is automatic.
 
+### Gate Intuitions: How Backprop "Feels" Locally
+
+Backprop is "a beautifully local process" (CS231n): every gate in the graph, given its inputs, can compute its own output and its own local gradient *independently of the rest of the circuit*; only during the backward pass does it learn the upstream gradient and multiply it in via the chain rule. Three gate types recur constantly and have clean interpretations:
+
+- **`+` (add) distributes** the upstream gradient unchanged and equally to every input, regardless of forward-pass values (local gradient is always 1).
+- **`max` routes** the upstream gradient unchanged to whichever input was larger on the forward pass, and zero to the rest (local gradient is 1 for the max, 0 otherwise).
+- **`×` (multiply) switches**: the local gradient on one input equals the *other* input's forward value, times the upstream gradient. This has a non-obvious consequence for linear layers `w^T x`: if one operand is tiny and the other huge, the multiply gate hands a huge gradient to the tiny operand and a tiny gradient to the huge one. Concretely, if every input `x_i` is scaled by 1000 during preprocessing, the gradient on the weights becomes 1000× larger too — a reason data preprocessing/normalization matters even before considering optimizer dynamics.
+
+**Gradients add at forks**: if a variable `x` is consumed by more than one downstream path, the contributions from each path must be *summed*, not overwritten — in code this means using `+=` rather than `=` when accumulating `dx` across multiple backward branches. This is just the multivariable chain rule (a branch is a sum over paths), but it's a common implementation bug if missed.
+
+**Vectorized gradients via dimension analysis**: for matrix-multiply layers `D = W·X`, you don't need to memorize `dW`/`dX` formulas — derive them from shape constraints. If `W` is `(5,10)`, `X` is `(10,3)`, and the upstream gradient `dD` must be `(5,3)` (matching `D`), then the only way to combine `dD` and `X` via matmul to recover something shaped `(5,10)` (matching `W`) is `dW = dD @ X.T`; similarly `dX = W.T @ dD`. When a vectorized gradient rule isn't obvious, write a small explicit numeric example, derive it by hand, and generalize.
+
+**Manual gradient checking**: for every parameter `x`, perturb by a small `h` and check the analytic gradient against the centered finite-difference estimate `f'(x) ≈ (f(x+h) − f(x−h)) / 2h`.
+
+### MLPs in Batched (Matrix) Form
+
+A single neuron is `y = f(w^T x + b)`. Stacking neurons into a layer and processing a batch of `m` examples as rows of `X`, the standard "math convention" batched form is `H = f(XW + b)` with `W ∈ ℝ^(n_in × n_out)`. Backprop through `Z = XW + b`:
+
+```
+∂L/∂X = (∂L/∂Z) Wᵗ      (m,n_out)×(n_out,n_in) = (m,n_in)
+∂L/∂W = Xᵗ (∂L/∂Z)      (n_in,m)×(m,n_out)     = (n_in,n_out)
+```
+
+The bias gradient **accumulates (sums) over the batch**, since the same `b` is added to every example: `∂L/∂b_j = Σ_i ∂L/∂z_ij`.
+
+**PyTorch's actual convention is transposed**: PyTorch stores the weight as `W ∈ ℝ^(n_out × n_in)` and computes `Z = X·Wᵗ` — the transpose is free (it only changes the tensor's stride, not its data). This is deliberate: it makes the gradient w.r.t. `W` come out already shaped `(n_out, n_in)`, matching `W` itself, with `∂L/∂X = (∂L/∂Z)·W` and `∂L/∂W = (∂L/∂Z)ᵗ·X`.
+
+**General principle for batched-gradient shapes**: derive the Jacobian for one example first (clean, 2-D), then generalize to the batch. A tensor **shared** across the batch (like `W`) gets its batch dimension *summed out* (contracted) in the gradient; a tensor that is **not shared** (like per-example activations `X`) keeps its batch dimension (stacked, not summed).
+
 ---
 
 ## Activation Functions
@@ -77,7 +106,23 @@ ReLU(x) = max(0, x)
 
 **Tanh**: `(e^x - e^{-x})/(e^x + e^{-x})`. Range (-1,1). Zero-centred (unlike sigmoid), but also saturates. Used in LSTMs and old-style RNNs.
 
-**Softmax**: `softmax(x)_i = e^{x_i} / Σ_j e^{x_j}`. Converts logits to probability distribution. Output layer for multi-class classification and next-token prediction in LLMs. Numerically stable via `x - max(x)`.
+**Softmax**: `softmax(x)_i = e^{x_i} / Σ_j e^{x_j}`. Converts logits to probability distribution. Output layer for multi-class classification and next-token prediction in LLMs. Numerically stable via `x - max(x)`. With temperature: `softmax(x/T)_i = e^{x_i/T} / Σ_j e^{x_j/T}`.
+
+### Derivatives, Derived
+
+**Sigmoid's derivative** simplifies to a clean self-referential form:
+
+```
+d/dx σ(x) = d/dx (1+e^{-x})^{-1} = e^{-x}/(1+e^{-x})²  =  σ(x)(1-σ(x))
+```
+
+This is why sigmoid/LSTM-gate backprop is cheap: the derivative is computable from the already-computed forward value, with no extra `exp` calls.
+
+**Swish's derivative** follows from the product rule plus the sigmoid-derivative identity above: since `Swish(x) = x·σ(x)`,
+
+```
+d/dx Swish(x) = σ(x) + x·σ'(x) = σ(x) + Swish(x)(1-σ(x))
+```
 
 ---
 
@@ -92,6 +137,32 @@ H(p, q) = -Σ_i p_i log q_i
 ```
 
 For one-hot labels: CE = -log q_y (where y is the true class). This penalises low probability assigned to the correct class.
+
+**The softmax + cross-entropy gradient, worked out** — for logits `z`, softmax probabilities `p_i = e^{z_i}/Σ_j e^{z_j}`, and loss `L = -log p_t` (t = correct class), most of the chain rule's terms vanish because `∂L/∂p_j` is only nonzero at `j=t`. Using softmax's own Jacobian (`∂p_j/∂z_i = p_j(1-p_j)` if `i=j`, else `-p_jp_i`), the result collapses to a remarkably clean form:
+
+```
+∂L/∂z = p − one_hot(t)
+```
+
+i.e. the gradient on each logit is just its predicted probability, minus 1 at the correct class. This is the gradient that actually flows into every LLM's final unembedding layer at every training step.
+
+**Implementing it**: when the target is one-hot, cross-entropy loss is just the negative log-likelihood of the next token, `L(x) = -Σ_t log p(x_t | x_<t)` — itself equivalent to a KL divergence (see [[ml-theory-statistics]]). With `F.cross_entropy()`, logits and labels are shifted internally:
+
+```python
+loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1), ignore_index=pad_idx)
+```
+
+For masked or per-token-weighted loss (e.g. excluding prompt tokens from an SFT loss), the manual version makes the shifting explicit:
+
+```python
+shift_logits = logits[:, :-1, :]
+shift_labels = input_ids[:, 1:]
+logprobs = F.log_softmax(shift_logits, dim=-1)
+token_logprobs = logprobs.gather(index=shift_labels.unsqueeze(-1), dim=-1).squeeze(-1)
+# build loss mask
+masked_logprobs = -token_logprobs * mask.float()
+return masked_logprobs.sum() / mask.sum()
+```
 
 **Binary cross-entropy**: CE = -y log ŷ - (1-y) log(1-ŷ). For binary classification or multi-label.
 
@@ -281,6 +352,12 @@ The cell state C_t is the "memory highway" — information flows through largely
 
 RNNs were dominant for sequence modelling pre-2018, then displaced by transformers. They're still used in edge/streaming scenarios requiring very low latency and memory.
 
+### Theoretical CS Aside: RNNs Can Encode Any DFA
+
+A **regular language** is exactly one recognizable by a finite-state machine (e.g. a deterministic finite automaton, DFA); a **context-free language** additionally needs a stack (pushdown automaton) for unbounded but stack-disciplined memory — the class that covers balanced parens, nested function calls, and most programming-language syntax.
+
+Any DFA can be encoded exactly by a ReLU RNN: given states `Q={q_1,...,q_k}`, alphabet `Σ`, and transition function `δ`, build a hidden state of dimension `k` that is a one-hot encoding of the current DFA state. For every transition `δ(q_i, σ_m) = q_j`, set weight `(W_h)_{ji}=1` (carries the current-state indicator forward), `(W_x)_{jm}=1` (gates on the right input symbol), and bias `b_j=-1` (so the ReLU only fires when both the right prior state *and* the right symbol are active simultaneously). This gives a concrete, constructive lower bound on what a minimal RNN can represent — a useful anchor when reasoning about why RNNs/SSMs handle some sequence tasks "for free" while transformers must learn the equivalent behavior from data.
+
 ---
 
 ## S4 (Structured State Space Sequence Model)
@@ -378,3 +455,31 @@ As τ → ∞: approaches uniform distribution
 - **VQ-VAE training**: straight-through estimator for the vector quantisation step
 
 The core insight: many discrete operations have useful continuous relaxations, and Gumbel noise is the natural relaxation for categorical sampling. Temperature annealing (start high, reduce to 0) during training gives the network time to learn which discrete choices to make before committing.
+
+### Three Ways to Get From Logits to a Choice
+
+It helps to place plain softmax, true categorical sampling, and Gumbel-Softmax side by side:
+
+| Method | Operation | Differentiable? | Stochastic? |
+|---|---|---|---|
+| Softmax | `softmax(logits)` | Yes | No (deterministic distribution, no sample drawn) |
+| Categorical sampling | `argmax_k[log π_k + g_k]` (Gumbel-Max) or direct `Categorical(π).sample()` | No (hard argmax/sample breaks the gradient) | Yes |
+| Gumbel-Softmax | `softmax((log π_k + g_k)/τ)` | Yes | Yes |
+
+Gumbel-Softmax is the only one of the three that is simultaneously stochastic (so it explores discrete choices like real sampling) and differentiable (so gradients can flow through the choice) — at the cost of being only an approximation to a true one-hot sample, controlled by the temperature τ.
+
+---
+
+## Related Topics
+
+- [[transformer-architecture]] — RMSNorm, attention, and SwiGLU FFNs as used in the modern transformer, building on the normalisation and activation primitives covered here
+- [[optimizers]] — AdamW, Muon, learning-rate schedules, and gradient clipping that consume the gradients backprop computes
+- [[applied-ml-systems]] — gradient checkpointing and other memory/compute tradeoffs that build on backprop's activation-caching requirement
+- [[generative-models]] — VAEs extend the autoencoder bottleneck with a probabilistic, KL-regularised latent space
+- [[hybrid-architectures]] — Mamba/SSM-Transformer hybrids building on the S4 state-space formulation covered here
+- [[ml-theory-statistics]] — the probability and information-theory foundations (entropy, KL divergence, MLE) underlying the loss functions on this page
+
+## Sources
+
+- Stanford CS231n, "Optimization: Backpropagation" (cs231n.github.io/optimization-2) — the circuit/gate framing of backprop (add distributes, max routes, multiply switches), the staged-computation worked examples, the "gradients add at forks" rule, and the dimension-analysis trick for vectorized matrix-multiply gradients. See [`raw/cs231n-backpropagation.md`](../raw/cs231n-backpropagation.md).
+- Alisa Liu, "Book of LLMs" (Notion, alisawuffles.notion.site/alisa-s-book-of-llms) — batched MLP forward/backward math, PyTorch's transposed weight-storage convention, the softmax+cross-entropy gradient derivation, and the DFA→RNN encoding construction. See [`raw/alisa-liu-book-of-llms.md`](../raw/alisa-liu-book-of-llms.md).

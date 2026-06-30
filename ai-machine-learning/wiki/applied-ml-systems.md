@@ -82,6 +82,8 @@ Backward: When an activation is needed, recompute it from the nearest checkpoint
 - **Full checkpointing**: memory = O(1), compute = O(L²/K) [must recompute K layers for each of L backward steps]
 - **Selective checkpointing**: checkpoint every √L layers → memory = O(√L), compute = O(L × √L)
 
+**General K-segment formula**: more precisely, for a model with `N` layers checkpointed into `K` segments, memory goes from `O(N)` to `O(K + N/K)` (you keep `K` checkpoints plus recompute up to `N/K` layers between them), and backward compute goes from `O(N)` to `O(N + N(K-1)/K)`. The `K+N/K` memory term is minimized by `K=√N`, giving the **optimal trade-off point**: `O(√N)` memory at `~O(2N)` backward compute (i.e. backward pass costs about double the no-checkpointing case) — which is exactly the "checkpoint every √L layers" rule above, derived from first principles rather than asserted.
+
 **Practical impact**: gradient checkpointing typically increases compute by ~30-40% but reduces activation memory by ~10-20×. Almost universally used in large model training.
 
 **What to checkpoint**: in transformers, typically checkpoint at transformer block boundaries (attention + FFN layer). Some frameworks checkpoint selectively (only FFN, not attention, because attention activations are smaller).
@@ -296,3 +298,19 @@ model = torch.compile(model)  # wraps the model
 **TensorFlow**: declining in research, still used for mobile deployment (TFLite) and Google production systems. Keras high-level API sits atop both TF and JAX.
 
 **Flax/Equinox/Haiku**: neural network libraries built on JAX. Equinox (from Patrick Kidger) is the cleanest: fully PyTree-based, arbitrary Python classes as models.
+
+---
+
+## Related Topics
+
+- [[deep-learning-fundamentals]] — backprop's activation-caching requirement is exactly what motivates gradient checkpointing here
+- [[gpu-kernel-engineering]] — FlashAttention's IO-aware kernel fusion gets checkpointing's memory savings without the recompute overhead
+- [[training-stability]] — Z-loss/logit softcapping and gradient norm monitoring as complementary stability tools
+- [[optimizers]] — MuonClip extends gradient-norm clipping to per-attention-head logit clipping
+- [[how-to-scale-your-model]] — the parallelism (DDP/FSDP/tensor/pipeline) and communication-primitive concepts here feed directly into scaling decisions
+- [[quantization-fundamentals]] — FP8/INT8 formats introduced here as numerical-precision basics
+
+## Sources
+
+- Mixed precision training, gradient checkpointing, gradient accumulation/clipping, exploding/vanishing gradients, DDP, communication primitives, profiling, and JAX/PyTorch/TensorFlow comparison are general ML-systems knowledge.
+- Alisa Liu, "Book of LLMs" (Notion, alisawuffles.notion.site/alisa-s-book-of-llms) — the general `K`-segment checkpointing memory/compute formula and the `K=√N` optimum derivation. See [`raw/alisa-liu-book-of-llms.md`](../raw/alisa-liu-book-of-llms.md).

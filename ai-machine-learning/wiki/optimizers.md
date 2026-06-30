@@ -21,6 +21,67 @@ Modern hyperparameters remain largely unchanged from the original:
 - `β1 = 0.9`, `β2 = 0.95–0.999`
 - `ε = 1e-8`
 
+**Rule of thumb for "LR schedule vs. optimizer"**: if a quantity depends on the time step `t` alone, it's probably an LR schedule (see below); if it requires per-parameter history (like `m_t`/`v_t`), it's an optimizer's job.
+
+In practice, weight decay should typically be excluded from biases and LayerNorm/RMSNorm parameters — done via separate parameter groups, each with its own `weight_decay`:
+
+```python
+torch.optim.AdamW([
+    {'params': decay_params, 'weight_decay': 0.01},
+    {'params': no_decay_params, 'weight_decay': 0.0},
+])
+```
+
+### AdamW, Implemented
+
+A from-scratch `torch.optim.Optimizer` subclass makes the update order explicit — weight decay is applied *before* the Adam update (since the decay term depends on the parameter's own current value), and per-parameter state (`t`, `m`, `v`) lives in `self.state[p]`:
+
+```python
+class AdamW(torch.optim.Optimizer):
+    def __init__(self, params, lr, betas, eps, weight_decay):
+        if lr < 0:
+            raise ValueError(f"Invalid learning rate: {lr}")
+        if not 0 < betas[0] < 1 or not 0 < betas[1] < 1:
+            raise ValueError(f"Invalid beta values: {betas}")
+        defaults = {"lr": lr, "betas": betas, "eps": eps, "weight_decay": weight_decay}
+        super().__init__(params, defaults)
+
+    def step(self):
+        for group in self.param_groups:  # for every group of parameters
+            lr = group["lr"]
+            beta1, beta2 = group["betas"]
+            eps = group["eps"]
+            weight_decay = group["weight_decay"]
+            for p in group["params"]:  # for every parameter in the group
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+
+                # state initialization with 0s
+                t = state.get("t", 0)
+                m, v = state.get("m", torch.zeros_like(p.data)), state.get("v", torch.zeros_like(p.data))
+
+                # weight decay
+                p.data -= lr * weight_decay * p.data
+
+                # Adam update
+                grad = p.grad.data
+                m = beta1 * m + (1 - beta1) * grad
+                v = beta2 * v + (1 - beta2) * grad**2
+                m_hat = m / (1 - beta1 ** (t + 1))
+                v_hat = v / (1 - beta2 ** (t + 1))
+                p.data -= lr * m_hat / (v_hat.sqrt() + eps)
+
+                # update optimizer state
+                state["t"] = t + 1
+                state["m"] = m
+                state["v"] = v
+```
+
+Memory cost per parameter is **~4×** its own size: the parameter, its gradient, and the two EMA buffers `m`/`v`.
+
+**Gradient clipping** is a separate, complementary mechanism — capping the global gradient norm before the optimizer step runs, to prevent any single step from being catastrophically large. See [[applied-ml-systems]] for the full mechanics and PyTorch implementation (`clip_grad_norm_`).
+
 ## Muon
 
 **Muon** ([original post](https://kellerjordan.github.io/posts/muon/)). Unlike AdamW which updates per-parameter, Muon treats the weight matrix as a singular object and updates based on matrix-level operations. This reduces axis-aligned bias (where optimization favors certain coordinate directions) and encourages exploration of suppressed directions.
@@ -178,6 +239,7 @@ Together, u-µP and CompleteP point at the same underlying lesson: µP's "maxima
 - [SGDR: Stochastic Gradient Descent with Warm Restarts (1608.03983)](../../papers/03-scaling/training-optimization/SGDR: Stochastic Gradient Descent with Warm Restarts - 1608.03983.pdf) — cosine annealing with warm restarts.
 - [u-µP: The Unit-Scaled Maximal Update Parametrization (2407.17465)](../../papers/03-scaling/training-optimization/u-µP: The Unit-Scaled Maximal Update Parametrization - 2407.17465.pdf) — combines µP with Unit Scaling for HP transfer + out-of-the-box FP8 training.
 - [Don't be lazy: CompleteP enables compute-efficient deep transformers (2505.01618)](../../papers/03-scaling/training-optimization/Don't be lazy: CompleteP enables compute-efficient deep transformers - 2505.01618.pdf) — depth-wise HP transfer and non-lazy feature learning via α=1 residual scaling.
+- Alisa Liu, "Book of LLMs" (Notion, alisawuffles.notion.site/alisa-s-book-of-llms) — the from-scratch `AdamW` PyTorch implementation and the "LR schedule vs. optimizer" rule of thumb. See [`raw/alisa-liu-book-of-llms.md`](../raw/alisa-liu-book-of-llms.md).
 
 ## Related Topics
 

@@ -6,7 +6,7 @@
 - [[small-efficient-models]] — How 1-3B deployable models trade extra tokens, cleaner data, WSD schedules, and distillation for cheap inference and local deployment
 
 ## Transformer Architecture
-- [[transformer-architecture]] — The foundational architecture behind all modern LLMs, from attention mechanisms to encoder-decoder design; Hyper-Connections and DeepSeek's manifold-constrained mHC as a generalization of the residual stream
+- [[transformer-architecture]] — The foundational architecture behind all modern LLMs, from attention mechanisms to encoder-decoder design; Hyper-Connections and DeepSeek's manifold-constrained mHC as a generalization of the residual stream; full equation-by-equation modern decoder walkthrough (RMSNorm, GQA-aware QKV, RoPE, SwiGLU) with attention-block PyTorch implementation and the model-activations formula
 - [[positional-encodings]] — How transformers encode sequence order: sinusoidal, RoPE, ALiBi, NoPE, RNoPE, ABF, YaRN
 - [[attention-variants]] — Per-token computation (MHA, MQA, GQA, MLA, gated attention) and long-context patterns (SWA, chunked, DCA, interleaved local/global); document masking
 - [[long-context-training]] — Bridge note for RoPE/YaRN/RNoPE, document masking, long/short data mixtures, KV-cache limits, and effective-context evaluation
@@ -100,7 +100,7 @@
 - [[deep-learning-fundamentals]] — Backpropagation and computational graphs; activation functions (ReLU, GELU, SwiGLU); loss functions (cross-entropy, MSE, contrastive); weight initialisation (Xavier, He); BatchNorm/LayerNorm/RMSNorm; CNNs (conv, ResNet); RNNs/LSTMs (gating, vanishing gradients); S4 and state space models; autoencoders (denoising, sparse, VQ-VAE); Gumbel-Softmax trick
 
 ## ML Theory and Statistics
-- [[ml-theory-statistics]] — PDF/PMF; expectation; variance and covariance; entropy and cross-entropy; KL divergence (forward vs reverse); Jensen-Shannon divergence; Bayes' theorem; MLE vs MAP; bias-variance tradeoff; No Free Lunch theorem; curse of dimensionality; confidence intervals; convex functions and Jensen's inequality
+- [[ml-theory-statistics]] — PDF/PMF; expectation; variance and covariance; entropy and cross-entropy (with the CE=KL+H(p) proof); KL divergence (forward vs reverse); Jensen-Shannon divergence; Bayes' theorem; MLE vs MAP; bias-variance tradeoff; No Free Lunch theorem; curse of dimensionality; confidence intervals; hypothesis testing toolkit (p-values, KS/chi-squared/t-tests, ANOVA, McNemar's, Pearson/Spearman, mutual information); convex functions and Jensen's inequality
 
 ## Optimisation and Regularisation
 - [[optimization-regularization]] — Gradient descent (SGD, mini-batch, momentum); Newton's method and second-order methods (L-BFGS, K-FAC); overfitting/underfitting; regularisation (L1/L2, dropout, data augmentation); cross-validation; early stopping; transfer learning; domain adaptation; few-shot/zero-shot; dimensionality reduction (PCA, t-SNE, UMAP); data whitening

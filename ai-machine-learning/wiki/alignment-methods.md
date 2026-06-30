@@ -55,6 +55,27 @@ GRPO's core tradeoff: each rollout is a long, structured natural-language artifa
 
 **GRPO vs PPO** (per DeepSeek-R1 appendix): PPO has a per-token KL penalty (KL between sequence distributions decomposes into a sum over time of KL between tokens). Because RL enables longer reasoning over time, PPO implicitly penalizes response length. GRPO doesn't, and is less computationally expensive (no separate value model). On MATH tasks, GRPO consistently performed better than PPO with KL coefficient `β = 0.04`, which consistently outperformed PPO with `β = 0.0`.
 
+**GRPO's atomic objective, stripped to a loop** (a useful mental model before adding clipping): for each of `G` sampled answers to a prompt, compute a sequence-level advantage by normalizing rewards within the group (mean/std), then accumulate `pi_theta(token) * advantage` over every token in every answer, averaging first over tokens within an answer and then over answers:
+
+```
+for each_generated_answer_i in generated_answers:        # G
+    advantage = calculate_advantage(each_generated_answer_i)
+    for each_token_o_t in each_generated_answer_i:        # |o_i|
+        token_loss = pi_theta(each_token_o_t) * advantage
+    loss_of_each_answer = sum(tokens_loss_in_answer_i) / len(each_generated_answer_i)
+final_loss = sum(loss_of_all_answers) / len(generated_answers)
+```
+
+This is, structurally, nothing more than a two-nested for-loop over answers and tokens against `pi_theta`, weighted by a sequence-level (not token-level) advantage broadcast to every token in that sequence.
+
+**Why naive batch reuse breaks, and the importance-sampling fix**: GRPO is sample-inefficient if you regenerate rollouts every gradient step, so implementations reuse one batch of generations across several gradient steps. The problem: by step 10 of reusing a step-0 batch, the loss is computed as if the *current* (already-updated) model generated those tokens, when the *step-0* model actually did — "like practicing basketball shots based on a video of yourself from last week. You've improved since then, so the video doesn't represent your current form anymore" (gitlostmurali.com). The fix is the importance-sampling ratio `pi_theta(token) / pi_theta_old(token)`, computed numerically-stably as `exp(current_log_probs - old_log_probs)`, with a clean three-way reading: ratio > 1 means the current model likes a token more than the generating model did (amplify that gradient), ratio < 1 means it likes it less (reduce the gradient), ratio = 1 means no correction needed. Clipping this ratio to `[1-ε, 1+ε]` (typically ε=0.2, i.e. `[0.8, 1.2]`) and taking `min(unclipped, clipped)` — the standard GRPO/PPO-style clipped objective — is "a conservative approach to prioritize stable training over perfect gradient correction": it trades exact-gradient fidelity for a guaranteed-bounded update.
+
+**On-policy vs. off-policy reuse, as an explicit tradeoff**: regenerating rollouts every step (on-policy) needs no importance-sampling correction and gives exact gradients, but wastes an expensive rollout batch on a single gradient step. Reusing one batch across multiple steps (off-policy) is reported as needing roughly **10x fewer generations** for the same number of gradient steps, at the cost of requiring the importance-sampling correction above and tolerating gradients that are approximations rather than exact.
+
+**Why β=0 in many recent GRPO implementations**: several recent GRPO setups drop the KL-divergence penalty against the reference policy entirely (`β = 0`). The reasoning (per gitlostmurali.com, citing Qingfeng's analysis): "the clipped objective is designed as a replacement of constraint policy optimization in form of the KL divergence term. Thus, adding a KL divergence term is not necessary theoretically" — the clip range already bounds how far the policy can move per step, making a separate KL constraint redundant. This is a stronger, narrower claim than the off-policy-weighting critique in the KL-Regularized Policy Gradients section above, which argues that *if* you keep a KL term under off-policy sampling, it needs the matching importance weight — the two critiques agree that GRPO's relationship between clipping and KL is easy to get wrong, from different angles.
+
+**Forking tokens — not all tokens matter equally**: "Beyond the 80/20 Rule" (Wang et al., 2025, arXiv:2506.01939) finds that only about 20% of tokens in reasoning sequences — called **forking tokens**, the actual decision points that drive exploration of different reasoning paths — meaningfully contribute to learning. Training on just that 20% subset not only preserves performance but can improve it, suggesting GRPO's token-level credit assignment is heavily skewed toward a small subset of high-leverage positions even before any explicit token-level reweighting (cf. DAPO's Token-Level Policy Gradient Loss above, which reweights by token count rather than by identifying which specific tokens matter).
+
 **Practical stability issues in GRPO** (per [DAPO: An Open-Source LLM Reinforcement Learning System at Scale (2503.14476)](../../papers/05-learning/reinforcement-learning/DAPO: An Open-Source LLM Reinforcement Learning Framework - 2503.14476.pdf)): Naive GRPO suffers from entropy collapse, reward noise, and training instability at scale. DAPO removes the explicit KL penalty for long-CoT reasoning because the desired policy may need to move far from the initial model, then stabilizes training with four techniques: (1) **Clip-Higher**: decouple upper and lower clipping bounds (asymmetric, e.g., ε_low=0.2, ε_high=0.28) to allow low-probability exploration tokens to increase probability while constraining the usual lower side of the trust region — prevents early deterministic policy. (2) **Dynamic Sampling**: filter out prompts with group accuracy=0 or 1 and oversample until the effective batch has non-zero advantages. (3) **Token-Level Policy Gradient Loss**: aggregate over tokens rather than equal-weighting whole samples, so long high-quality traces can be learned from and long low-quality patterns can actually be penalized. (4) **Overlong Reward Shaping**: assign soft penalties to truncated long samples rather than hard penalties, signaling length control without confusing the model about reasoning validity. These techniques enable 50 points on AIME with Qwen2.5-32B vs 47 (DeepSeek-R1-Zero) using 50% fewer training steps.
 
 ## RLVR: RL with Verifiable Rewards
@@ -139,6 +160,8 @@ Where you fall on these questions depends largely on your [[agi-timelines]] view
 - [[agi-timelines]] — Whether you think alignment is urgent depends on this
 - [[dwarkesh-podcast]] — Primary source material for alignment positions across the field
 - [[frontier-training-playbook]] — where alignment sits in the broader recipe
+- [[on-policy-distillation]] — why on-policy methods (RL, OPD) forget less than SFT (RL's Razor)
+- [[rl-fundamentals]] — importance sampling and on-policy vs off-policy fundamentals underlying GRPO's correction term
 
 ## Sources
 - [Direct Preference Optimization: Your Language Model is Secretly a Reward Model (2305.18290)](../../papers/05-learning/alignment-preferences/Direct Preference Optimization: Your Language Model is Secretly a Reward Model - 2305.18290.pdf)
@@ -156,3 +179,4 @@ Where you fall on these questions depends largely on your [[agi-timelines]] view
 - Prime Intellect, Intellect-3 (in-flight updates, IcePop, pipeline RL).
 - Kimi K2 technical report (rubric rewards, PTX loss, temperature decay).
 - Kari Briski (NVIDIA), "How Scaling Laws Drive Smarter, More Powerful AI" (Feb 12, 2025) — RLAIF, best-of-n sampling, search methods as post-training scaling levers. See `raw/nvidia-ai-scaling-laws.md`.
+- Murali Manohar, "Lightweight Guide to Understanding GRPO and RL Principles" (gitlostmurali.com, Sep 13, 2025) — code-level walkthrough of GRPO's atomic objective, the staleness problem, importance sampling, clipping, and the on-policy/off-policy tradeoff; cites "Beyond the 80/20 Rule" (Wang et al., 2025, arXiv:2506.01939) on forking tokens and "RL's Razor" (Shenfeld et al., 2025, arXiv:2509.04259). See [`raw/grpo-intro-gitlostmurali.md`](../raw/grpo-intro-gitlostmurali.md).

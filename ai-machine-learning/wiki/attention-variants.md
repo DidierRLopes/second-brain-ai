@@ -14,6 +14,37 @@ Modern production-grade implementations like [[training-ops|ThunderKittens]] (Sp
 
 Caveat: FlashAttention / SDPA fused kernels assume standard attention, so they are **incompatible with logit softcapping during training**. See [[training-stability]] for the workaround.
 
+### The Online-Softmax Trick, Derived
+
+"Online softmax" is the numerically-stable trick underlying FlashAttention's single-pass tiling, and it's worth deriving explicitly. The naive numerically-stable softmax needs **two passes** over the logits: one to find the max `x_max`, one to compute the shifted denominator `Σ e^{x_j - x_max}`. Online softmax fuses both into a single pass by maintaining a running max and a running, continuously-rescaled denominator as new logits arrive.
+
+Maintain a running max `m_k = max(x_1, ..., x_k)` and running shifted denominator `d_k = Σ_{j≤k} e^{x_j - m_k}`. On encountering `x_{k+1}`:
+
+```
+m_{k+1} = max(m_k, x_{k+1})
+d_{k+1} = d_k · e^{m_k - m_{k+1}} + e^{x_{k+1} - m_{k+1}}
+```
+
+The update for `d_{k+1}` falls out by splitting off the new term and rewriting each old exponent as `x_j - m_k + m_k - m_{k+1}`, pulling the constant `e^{m_k - m_{k+1}}` out of the sum, and recognizing what's left as `d_k`:
+
+```
+d_{k+1} = e^{x_{k+1} - m_{k+1}} + Σ_{j≤k} e^{x_j - m_{k+1}}
+        = e^{x_{k+1} - m_{k+1}} + e^{m_k - m_{k+1}} · Σ_{j≤k} e^{x_j - m_k}
+        = d_k · e^{m_k - m_{k+1}}  +  e^{x_{k+1} - m_{k+1}}
+          \_____rescale old terms____/   \___new term___/
+```
+
+When the max doesn't change (`m_k = m_{k+1}`), the rescaling factor is exactly 1 — no correction needed. After the full pass, a second sweep over the logits computes `e^{x_i - m_N} / d_N` to materialize the actual softmax — but for a *weighted sum* (rather than the distribution itself), no second pass is needed at all, which is exactly FlashAttention's situation.
+
+**Connection to FlashAttention**: attention output is a weighted sum over a stream of logits `x_i = q·k_i` and values `v_i`: `o = (Σ_i e^{x_i} v_i) / (Σ_i e^{x_i})`. FlashAttention extends the two running quantities above with a third, a running numerator `o_k ∈ R^H` (`H` = head dim), updated by the identical rule:
+
+```
+o_k = Σ_{i≤k} e^{x_i - m_k} v_i
+o_{k+1} = o_k · e^{m_k - m_{k+1}} + e^{x_{k+1} - m_{k+1}} v_{k+1}
+```
+
+After streaming through all `N` key/value pairs, the triple `(m_N, d_N, o_N)` gives the exact attention output as `o_N / d_N` — computed in one tiled pass with no `T×T` matrix ever materialized. This is the precise mechanism behind the "running max and running sum for numerical stability" step in the three-step summary above.
+
 ### FlashAttention-4 (Blackwell)
 
 [FlashAttention-4 (2603.05451)](../../papers/02-architecture/attention-variants/FlashAttention-4: Algorithm and Kernel Pipelining Co-Design - 2603.05451.pdf) targets NVIDIA Blackwell (B200/GB200) where the hardware scaling is now deeply **asymmetric** — tensor cores doubled to 2.25 PFLOPS FP16/BF16 (vs 1 PFLOPS on Hopper), but shared memory bandwidth and the exponential MUFU unit stayed flat. A roofline analysis shows shared-memory traffic and exponential ops now dominate execution time by 25–60%, exceeding MMA compute. The kernel co-designs around three new constraints:
@@ -133,3 +164,4 @@ When training encounters instability or loss spikes, adjusting the **ratio of gl
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - SmolLM3 report (GQA group-count ablation). See `raw/smollm3-hugging-face-report.md`.
 - Qwen-2.5 (DCA at 1M context), Gemma 3 (SWA + full alternation), Llama 4 (chunked + RNoPE).
+- Alisa Liu, "Book of LLMs" (Notion, alisawuffles.notion.site/alisa-s-book-of-llms) — the online-softmax running-max/running-denominator derivation and its extension to a running numerator for FlashAttention. See [`raw/alisa-liu-book-of-llms.md`](../raw/alisa-liu-book-of-llms.md).
