@@ -41,6 +41,22 @@ Follow-on work: **Q-GaLore** adds INT4 quantization of the projection matrices a
 
 GaLore and LoRA are not mutually exclusive — both reduce optimizer/activation memory but via different mechanisms (gradient compression vs weight-update compression), and some recipes combine low-rank gradient projection with low-rank adapters.
 
+## Portable Task Adaptation: PorTAL
+
+A different problem than *how* to fine-tune cheaply is *how often you have to redo it*: a LoRA is locked to the base model it was trained on, so each new model release forces a from-scratch re-tune. This cost doesn't amortize — it's a recurring tax that scales roughly inversely with the time between model releases, and that cadence has been accelerating (notable foundation-model releases: 2/year in 2020 → 149/year in 2023; by 2024-2025 a new SOTA model held the top public leaderboard spot for only ~35 days on average, down from ~1 year for GPT-4).
+
+**PorTAL** (Geist, Ramp Labs, 2026) addresses this by learning a task adaptation once, in a *base-agnostic* form, and porting it to new frozen models by refitting only a small per-model component:
+
+- A **base-agnostic task latent** `z_t` (dim 256) is learned per task, shared across all base models.
+- A **hypernetwork decoder** `D_b` generates per-layer LoRA factors (A, B) from `z_t` and a per-layer embedding, split into a **shared core** (a FiLM-conditioned trunk + per-module heads, base-agnostic, producing fixed-width "core" factors) and a **thin per-base converter** (linear projections that map the core-width factors to the target base's actual dimensions, plus the per-layer embeddings themselves).
+- To **port to an unseen base**, the task latent and shared core are frozen, and only the thin converter is refit on a small calibration set.
+
+Trained jointly on Qwen3-1.7B and Qwen3-4B, then porting the frozen latent+core to an **unseen Qwen3-8B** by refitting just the converter recovers **~98% of per-task LoRA's accuracy lift** — versus only **~14%** for Cross-LoRA (a data-free adapter-translation baseline that transfers an already-trained adapter without any refitting step). Cross-family transfer (same frozen Qwen latent/core, ported to an unseen **Gemma-3-4B**) recovers **~94%** of the lift, described as "nearly lossless." The converter refit is also more data-efficient than training a LoRA from scratch on the new base: PorTAL reaches from-scratch LoRA's peak accuracy with roughly **half the calibration data**, and is better calibrated (lower held-out log-loss) at every data size along the way — which roughly halves the FLOPs needed to adapt each subsequent base model, since the frozen base dominates per-step cost.
+
+This sits at the intersection of two prior lines of work: single-base LoRA hypernetworks (e.g. Text-to-LoRA), which amortize across tasks but stay locked to one base, and cross-model LoRA transfer methods (Cross-LoRA, LoRA-X, CAST), which translate an existing adapter to a new base without any calibration step. PorTAL's central empirical claim is that a small refit step is what makes cross-model transfer actually work — data-free translation alone leaves most of the accuracy lift on the table.
+
+The paper also reports *recovered lift* — `(acc_method - acc_base) / (acc_LoRA - acc_base)` — rather than *retention* (`acc_method / acc_LoRA`), arguing retention is non-discriminative when headroom over the base model is small (the regime prior cross-model-transfer papers evaluate in).
+
 ## Related Topics
 - [[quantization-fundamentals]] — QLoRA bridges quantization and fine-tuning
 - [[alignment-methods]] — PEFT methods are used in the alignment pipeline (SFT + DPO stages)
@@ -54,3 +70,4 @@ GaLore and LoRA are not mutually exclusive — both reduce optimizer/activation 
 - GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection — Zhao et al., ICML 2024 (arxiv:2403.03507)
 - Q-GaLore: Quantized GaLore with INT4 Projection and Layer-Adaptive Low-Rank Gradients (arxiv:2407.08296)
 - GaLore 2: Large-Scale LLM Pre-Training by Gradient Low-Rank Projection (arxiv:2504.20437)
+- [PorTAL: Portable Task Adapters for LLMs — Geist, Ramp Labs (2026)](https://labs.ramp.com/research) — no arXiv ID; see local notes at [ramp-labs-portal-portable-task-adapters.md](../raw/ramp-labs-portal-portable-task-adapters.md)
