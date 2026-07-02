@@ -40,7 +40,7 @@
 
 ## Fine-Tuning and Alignment
 - [[supervised-fine-tuning]] — SFT specifics: sequence packing, masking, chat templates, learning rate, epochs, CCE kernel, IFThink, multi-stage SFT
-- [[parameter-efficient-fine-tuning]] — LoRA, QLoRA, DoRA, and GaLore (gradient low-rank projection): adapting or fully training LLMs under tight memory budgets
+- [[parameter-efficient-fine-tuning]] — LoRA, QLoRA, DoRA, and GaLore (gradient low-rank projection): adapting or fully training LLMs under tight memory budgets; PorTAL: porting a frozen task latent + hypernetwork core across base models by refitting only a thin per-base converter
 - [[alignment-methods]] — From RLHF and DPO to KTO, ORPO, APO, SimPO, GRPO, RLVR, IcePop, rubric rewards, in-flight updates, PTX loss
 - [[icepop-stabilizing-rl-moe]] — IcePop: stabilizing RL training in MoE architectures via token discrepancy masking and per-expert-path gradient clipping
 - [[rl-training-systems]] — Rollout/trainer systems for GRPO, DAPO, PipelineRL, PrefixRL, KL control, stale policies, and verifier-backed RL; SemiAnalysis three-actor producer/consumer throughput-matching model, environment-state-level staleness, OpenRLHF→slime/verl framework lineage

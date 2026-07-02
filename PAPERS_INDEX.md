@@ -1,6 +1,6 @@
 # Research Papers Index
 
-> 88 papers (PDFs on disk) plus 26 URL-only references (DeepSeek-V3, plus 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources added 2026-06-20), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
+> 88 papers (PDFs on disk) plus 27 URL-only references (DeepSeek-V3, plus 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources added 2026-06-20, plus PorTAL added 2026-07-02), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
 
 ## Quick Reference
 
@@ -10,7 +10,7 @@
 | [02-architecture](#02-architecture) | transformers, attention-variants, alternatives | 7 |
 | [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 18 (+4 URL-only) |
 | [04-efficiency](#04-efficiency) | quantization, context-extension, inference-kernels | 11 |
-| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 22 (+6 URL-only) |
+| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 22 (+7 URL-only) |
 | [06-data](#06-data) | curation-filtering, datasets, tokenization | 7 |
 | [07-applications](#07-applications) | agents-swe | 8 (+10 URL-only) |
 | [08-evaluation](#08-evaluation) | benchmarking, analysis, safety | 5 |
@@ -155,6 +155,7 @@ Preference optimization, RL, reasoning, and fine-tuning/adaptation.
 - [Revisiting DAgger in the Era of LLM-Agents](<papers/05-learning/fine-tuning/Revisiting DAgger in the Era of LLM-Agents - 2605.12913.pdf>) — arXiv:2605.12913
 - [Teaching Pretrained Language Models To...](<papers/05-learning/fine-tuning/TEACHING PRETRAINED LANGUAGE MODELS TO - 2511.07384.pdf>) — arXiv:2511.07384
 - [Memorization Dynamics in Knowledge Distillation for Language Models](<papers/05-learning/fine-tuning/Memorization Dynamics in Knowledge Distillation for Language Models - 2601.15394.pdf>) — arXiv:2601.15394
+- [PorTAL: Portable Task Adapters for LLMs](https://labs.ramp.com/research) — no arXiv ID; Ramp Labs research report (Geist, 2026) — *URL link only, not currently in the repo as a PDF*
 
 ## 06-data
 
