@@ -49,7 +49,7 @@ The analogy to LLM alignment is structural, not literal. AlphaZero has perfect s
 
 ## GRPO: Group Relative Policy Optimization
 
-Used by DeepSeek-R1, GRPO is an RL-based method that samples multiple responses, scores them, and uses relative rankings within the group for optimization. Notable for enabling [[reasoning-models|reasoning capabilities to emerge]] purely from RL without any human-annotated reasoning demonstrations.
+Used by DeepSeek-R1, GRPO is an RL-based method that samples multiple responses, scores them, and uses relative rankings within the group for optimization. Notable for enabling [[reasoning-models|reasoning capabilities to emerge]] purely from RL without any human-annotated reasoning demonstrations. See [[grpo]] for a first-principles, code-level derivation of the objective; this section covers where GRPO sits among alignment methods and its scaling variants.
 
 GRPO's core tradeoff: each rollout is a long, structured natural-language artifact (reasoning steps, tool calls, errors, judge rationales), but the optimizer compresses it to a single ±1 group-relative reward and back-propagates one bit per trajectory. That is why RL on LLMs typically needs tens of thousands of rollouts to converge — the signal was rich, the optimizer made it sparse. For compound multi-module systems where the base model already has the capability and the prompt is the bottleneck, [[prompt-optimization|GEPA-style reflective prompt evolution]] has been shown to beat GRPO by ~10 points with ~35× fewer rollouts and no GPU training. The two are increasingly combined (BetterTogether, mmGRPO) rather than treated as alternatives — use RL when the model needs new capabilities, prompt optimization when it needs new instructions.
 
