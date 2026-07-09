@@ -25,7 +25,7 @@
 ## Embeddings & Retrieval
 - [[embeddings]] — From Word2Vec to Matryoshka: dense vector representations for semantic similarity and search
 - [[retrieval-augmented-generation]] — RAG: grounding LLM outputs in retrieved evidence, chunking strategies, and advanced variants
-- [[kv-cache]] — The key-value cache: mechanics, memory bottlenecks, PagedAttention, compression (Scissorhands, TurboQuant/PolarQuant near-optimal vector quantization), and scaling context
+- [[kv-cache]] — The key-value cache: mechanics, memory bottlenecks, PagedAttention, compression (Scissorhands, TurboQuant/PolarQuant near-optimal vector quantization; TriAttention and the FlashAttention/paged-attention infra collisions that block most eviction methods), and scaling context
 
 ## Quantization
 - [[quantization-fundamentals]] — Core concepts: what quantization is, why it matters, how it works, and hardware-native microscaling formats (MXFP4, NVFP4)

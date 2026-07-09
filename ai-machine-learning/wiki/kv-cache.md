@@ -67,7 +67,18 @@ PagedAttention (Kwon et al., 2023) solved the memory fragmentation problem. Prev
 
 Not all cached tokens are equally important. **Scissorhands** (Dang et al., 2023) exploits the "persistence of importance" hypothesis: tokens that receive high attention at one step tend to remain important. By evicting unimportant tokens, it achieves 5× compression (20× with 4-bit quantization) without fine-tuning.
 
-Other approaches include H2O (Heavy-Hitter Oracle) which keeps only the most-attended tokens, and StreamingLLM which maintains a sliding window plus "attention sink" tokens.
+Other approaches include H2O (Heavy-Hitter Oracle) which keeps only the most-attended tokens, and StreamingLLM which maintains a sliding window plus "attention sink" tokens. SnapKV scores tokens once using an "observation window" of the ~25 most recent tokens to decide what to keep, removing continuous bookkeeping but missing information attended during different reasoning phases; further variants (TOVA, PyramidKV, Ada-KV, R-KV, Quest) apply similar attention-scoring with layer/head-specific budgets or page selection.
+
+### The Infrastructure Problem: Why Compression Rarely Ships
+
+NVIDIA's [KV Cache Compression and Its Infra Problems](../raw/nvidia-kv-cache-compression-infra-problems.md) (Mao, Chen, Huang, Yang, Wang & Han, NVIDIA Efficient AI Lab, June 2026) makes the case that *"the hard part of KV cache compression is not choosing which tokens to keep — it is two collisions with production infrastructure."* The motivating failure: a Qwen3-32B model with 4-bit-quantized weights **crashes after ~24,000 generated tokens on a 24GB GPU**, short of the 32K-token traces reasoning models need. Yet most published methods can't be deployed to fix it, for two reasons:
+
+- **FlashAttention incompatibility.** FlashAttention tiles the attention computation through SRAM and never materializes the full N×N score matrix. Any method that needs historical per-token attention scores to decide evictions (like H2O, which tracks cumulative score sums per token) has nothing to read — the reference H2O implementation *falls back to eager attention, materializing the full score matrix and abandoning FlashAttention outright*.
+- **Paged-attention fragmentation.** vLLM-style [[inference-optimization|paged attention]] stores the cache in fixed ~16-token physical blocks that free only when *completely* empty. After eviction, survivors scatter: evicting 14,400 of 16,000 tokens leaves 1,600 survivors spread across ~1,000 blocks, so nearly every block retains a survivor and the allocator reclaims almost nothing despite a massive *logical* deletion.
+
+**TriAttention** is their answer to both. It abandons attention-score dependency entirely, using the *geometric properties of the learned Q/K representation spaces* to predict token importance (no score observation → FlashAttention-compatible). To recover physical memory it adds **Forward-Packing Compaction** roughly every 128 decoded tokens, in one of two variants: an *order-preserving repack* (survivors slide forward keeping token order, whole blocks empty and return to the allocator, minimal position tracking) or a *hole-filling* variant (new survivors drop into vacated slots — ~3 copies vs. 18, but scrambles physical order and needs explicit position tracking). At a KV budget of 2,048 tokens (1/16th of full 32K) TriAttention nearly doubles R-KV's AIME 2025 accuracy (32.9% vs. 17.5%, against 40.8% full-attention), and at budget 3,072 it matches the full-attention baseline while delivering **2.5× higher throughput (563 vs. 223 tok/s) and 10.7× KV memory reduction (9.3% relative usage)**. The same memory pressure recurs in autoregressive video generation, where Quant VideoGen reaches 7× compression via 2-bit residual quantization of near-identical adjacent frames, and LongLive 2.0 uses 4-bit NVFP4 with fused parallel dequantization kernels for 1.84× throughput at <2% quantization overhead.
+
+The broader lesson generalizes past this one method: a KV-compression technique's viability is decided less by benchmark accuracy than by whether it coexists with FlashAttention (never needs materialized scores) and with paged attention (must actually free physical blocks, not just logically delete tokens).
 
 ## TurboQuant: Near-Optimal Vector Quantization for KV Cache
 
@@ -167,6 +178,7 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [How to Scale Your Model — Austin et al. (2025)](https://jax-ml.github.io/scaling-book/training) — exact KV size formula, LLaMA 70B example, decode step load time
 - PagedAttention / vLLM (arxiv:2309.06180)
 - Scissorhands (arxiv:2305.17118)
+- [KV Cache Compression and Its Infra Problems — Mao, Chen, Huang, Yang, Wang & Han, NVIDIA Efficient AI Lab (June 2026)](../raw/nvidia-kv-cache-compression-infra-problems.md) — the two infrastructure collisions (FlashAttention score materialization, paged-attention fragmentation), TriAttention + Forward-Packing Compaction, 10.7× KV memory reduction at full-attention accuracy
 - TurboQuant: Near-Optimal Vector Quantization for Memory-Constrained Attention — Zandieh, Daliri, Hadian, Mirrokni, ICLR 2026 (Google Research / DeepMind)
 - PolarQuant — AISTATS 2026
 - Ring Attention (arxiv:2310.01889)
