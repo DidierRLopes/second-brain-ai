@@ -6,11 +6,12 @@
 - [[small-efficient-models]] — How 1-3B deployable models trade extra tokens, cleaner data, WSD schedules, and distillation for cheap inference and local deployment
 
 ## Transformer Architecture
-- [[transformer-architecture]] — The foundational architecture behind all modern LLMs, from attention mechanisms to encoder-decoder design; Hyper-Connections and DeepSeek's manifold-constrained mHC as a generalization of the residual stream; full equation-by-equation modern decoder walkthrough (RMSNorm, GQA-aware QKV, RoPE, SwiGLU) with attention-block PyTorch implementation and the model-activations formula
-- [[positional-encodings]] — How transformers encode sequence order: sinusoidal, RoPE, ALiBi, NoPE, RNoPE, ABF, YaRN
+- [[transformer-architecture]] — The foundational architecture behind all modern LLMs, from attention mechanisms to encoder-decoder design; Hyper-Connections, mHC, and xHC as generalizations of the residual stream; full equation-by-equation modern decoder walkthrough (RMSNorm, GQA-aware QKV, RoPE, SwiGLU) with attention-block PyTorch implementation and the model-activations formula
+- [[positional-encodings]] — How transformers encode sequence order: sinusoidal, learned relative representations, Music Transformer's memory-efficient relative attention, RoPE, ALiBi, NoPE, RNoPE, ABF, YaRN
 - [[attention-variants]] — Per-token computation (MHA, MQA, GQA, MLA, gated attention) and long-context patterns (SWA, chunked, DCA, interleaved local/global); document masking
 - [[long-context-training]] — Bridge note for RoPE/YaRN/RNoPE, document masking, long/short data mixtures, KV-cache limits, and effective-context evaluation
 - [[vision-transformers]] — Applying transformers to computer vision: ViT, DeiT, and cross-modal unification
+- [[multimodal-models]] — Mixture-of-Transformers: modality-specific parameters with shared global attention for sparse, scalable multimodal foundation models
 - [[mixture-of-experts]] — Routing, load balancing (LBL, auxiliary-loss-free, sequence-wise, SMEBU), sparsity, granularity, shared experts
 - [[hybrid-architectures]] — Linear-attention / state-space + transformer hybrids: Mamba-2, gated DeltaNet, kimi delta attention
 
@@ -51,6 +52,7 @@
 - [[reward-hacking-dynamics]] — Prime Intellect (May 2026): reward hacking as gradient dynamics, not specification; backdoor-ifeval experiments; rarity floor (no safe threshold); Goldilocks difficulty zone; prompt injection backfire; 3-phase liftoff; Prime Sprints
 - [[agent-rl-instability-tool-conditioned]] — Microsoft/Aditya Challapally (Jan 2026): tool-conditioned variance amplification in production agent RL; invisible to aggregate metrics; Post-Training Toolkit (OSS, TRL-integrated); slice-aware diagnostics
 - [[on-policy-distillation]] — OPD, OPSD, SDFT/GATES/CRISP/RLSD, MOPD, cross-tokenizer OPD; gradient geometry, multi-teacher recipes, the algorithm-selection table; foundational methods (MiniLLM, GKD, DistiLLM, G-OPD/ExOPD, AOPD); why on-policy methods forget less (RL's Razor, forward/reverse-KL, SFT-memorizes-RL-generalizes); failure modes (Rock Tokens, prefix drift, CaOPD)
+- [[subliminal-learning]] — Hidden behavioral transfer as steering-vector distillation: causal evidence, optimizer and LoRA dependence, limitations, and safety implications
 - [[coding-agent-over-editing]] — nrehiew (June 2026): over-editing in coding LLMs as a measurable failure mode (Levenshtein patch score, Added Cognitive Complexity); BigCodeBench-derived benchmark; frontier-model leaderboard (GPT-5.4 worst, Opus 4.6 best); SFT/rSFT/DPO/RL training-method comparison on Qwen3; LoRA-rank-64 ablation; LoRA-scale reward-hacking incident
 - [[practical-fine-tuning]] — Hands-on guidance: hyperparameters, dataset prep, and common pitfalls
 
@@ -73,6 +75,7 @@
 
 ## Evaluation and Safety
 - [[llm-evaluation]] — Closed benchmarks, executable task tests, trace analysis, and open-world evaluations for frontier agents
+- [[ai-generated-text-detection]] — Pangram's hard-negative detector training and AuthorMist's reinforcement-learned detector evasion; metrics, limitations, and responsible-use rules
 - [[safety-misalignment]] — Reward hacking as a seed for emergent and context-dependent misalignment in tool-using agents
 
 ## Infrastructure and Operations
@@ -88,6 +91,7 @@
 
 ## Reinforcement Learning
 - [[rl-fundamentals]] — MDP, Markov property, Bellman equations, Q-learning/TD, SARSA, Monte Carlo vs TD, on-policy vs off-policy, exploration vs exploitation, credit assignment, importance sampling, curriculum learning
+- [[online-learning-dynamic-regret]] — Static, strongly adaptive, and dynamic regret; variation-adaptive guarantees without knowing the environment's drift budget in advance
 - [[policy-gradient-actor-critic]] — Policy gradient theorem, REINFORCE, variance reduction (baselines, GAE), actor-critic, PPO with clip objective; connections to GRPO and LLM alignment
 - [[model-based-rl-advanced]] — AlphaGo/AlphaZero/MuZero: MCTS + neural networks; World Models and Dreamer V3; Soft Actor-Critic (SAC) with entropy maximisation; model-based vs model-free comparison
 

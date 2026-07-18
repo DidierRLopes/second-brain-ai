@@ -1,19 +1,19 @@
 # Research Papers Index
 
-> 88 papers (PDFs on disk) plus 27 URL-only references (DeepSeek-V3, plus 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources added 2026-06-20, plus PorTAL added 2026-07-02), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
+> 104 papers (PDFs on disk) plus 28 URL-only references (DeepSeek-V3, 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources added 2026-06-20, PorTAL, and the synthetic pretraining-data study), organized into 8 thematic categories (with subfolders) under `papers/`. This index is generated from the actual folder structure on disk — if you move or rename a file, update its entry here.
 
 ## Quick Reference
 
 | Category | Subfolders | Papers |
 |---|---|---|
 | [01-models](#01-models) | gpt-deepseek-v2-v3, llama-qwen-gemma, small-efficient | 11 (+6 URL-only) |
-| [02-architecture](#02-architecture) | transformers, attention-variants, alternatives | 7 |
-| [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 18 (+4 URL-only) |
-| [04-efficiency](#04-efficiency) | quantization, context-extension, inference-kernels | 11 |
-| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning | 22 (+7 URL-only) |
-| [06-data](#06-data) | curation-filtering, datasets, tokenization | 7 |
-| [07-applications](#07-applications) | agents-swe | 8 (+10 URL-only) |
-| [08-evaluation](#08-evaluation) | benchmarking, analysis, safety | 5 |
+| [02-architecture](#02-architecture) | transformers, attention-variants, multimodal, alternatives | 10 |
+| [03-scaling](#03-scaling) | scaling-laws, compute-optimal, sparse-moe, training-optimization | 19 (+4 URL-only) |
+| [04-efficiency](#04-efficiency) | quantization, context-extension, inference-kernels, serving-systems | 13 |
+| [05-learning](#05-learning) | alignment-preferences, reinforcement-learning, reasoning, fine-tuning, online-learning | 28 (+7 URL-only) |
+| [06-data](#06-data) | curation-filtering, datasets, tokenization | 6 (+1 URL-only) |
+| [07-applications](#07-applications) | agents-swe, generative-media | 10 (+10 URL-only) |
+| [08-evaluation](#08-evaluation) | benchmarking, analysis, safety | 7 |
 
 ---
 
@@ -51,12 +51,17 @@ Core transformer mechanics, positional encoding, and architectural alternatives.
 **transformers/**
 - [Fast Transformer Decoding: One Write-Head is All You Need](<papers/02-architecture/transformers/Fast Transformer Decoding: One Write-Head is All You Need - 1911.02150.pdf>) — arXiv:1911.02150 (MQA)
 - [GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints](<papers/02-architecture/transformers/GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints - 2305.13245.pdf>) — arXiv:2305.13245
+- [xHC: Expanded Hyper-Connections](<papers/02-architecture/transformers/xHC: Expanded Hyper-Connections - 2607.14530.pdf>) — arXiv:2607.14530
 
 **attention-variants/**
+- [Self-Attention with Relative Position Representations](<papers/02-architecture/attention-variants/Self-Attention with Relative Position Representations - 1803.02155.pdf>) — arXiv:1803.02155
 - [RoFormer: Enhanced Transformer with Rotary Position Embedding](<papers/02-architecture/attention-variants/RoFormer: Enhanced Transformer with Rotary Position Embedding - 2104.09864.pdf>) — arXiv:2104.09864
 - [The Impact of Positional Encoding on Length Generalization in Transformers](<papers/02-architecture/attention-variants/The Impact of Positional Encoding on Length Generalization in Transformers - 2305.19466.pdf>) — arXiv:2305.19466
 - [Rope to Nope and Back Again: A New Hybrid Position Encoding for Efficient Context Scaling](<papers/02-architecture/attention-variants/Rope to Nope and Back Again: A New Hybrid Position Encoding for Efficient Context Scaling - 2501.18795.pdf>) — arXiv:2501.18795
 - [FlashAttention-4: Algorithm and Kernel Pipelining Co-Design](<papers/02-architecture/attention-variants/FlashAttention-4: Algorithm and Kernel Pipelining Co-Design - 2603.05451.pdf>) — arXiv:2603.05451
+
+**multimodal/**
+- [Mixture-of-Transformers: A Sparse and Scalable Architecture for Multi-Modal Foundation Models](<papers/02-architecture/multimodal/Mixture-of-Transformers: A Sparse and Scalable Architecture for Multi-Modal Foundation Models - 2411.04996.pdf>) — arXiv:2411.04996
 
 **alternatives/**
 - [Transformers are SSMs: Generalized Models and Efficient Algorithms for Sequence Modeling](<papers/02-architecture/alternatives/Transformers are SSMs: Generalized Models and Efficient Algorithms for Sequence Modeling - 2405.21060.pdf>) — arXiv:2405.21060
@@ -80,6 +85,7 @@ Scaling laws, compute-optimal training, MoE scaling, and training-optimization m
 - [GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding](<papers/03-scaling/sparse-moe/GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding - 2006.16668.pdf>) — arXiv:2006.16668
 - [Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](<papers/03-scaling/sparse-moe/Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity - 2101.03961.pdf>) — arXiv:2101.03961
 - [Unified Scaling Laws for Routed Language Models](<papers/03-scaling/sparse-moe/Unified Scaling Laws for Routed Language Models - 2202.01169.pdf>) — arXiv:2202.01169
+- [LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture of Experts](<papers/03-scaling/sparse-moe/LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture of Experts - 2601.18089.pdf>) — arXiv:2601.18089
 
 **training-optimization/**
 - [SGDR: Stochastic Gradient Descent with Warm Restarts](<papers/03-scaling/training-optimization/SGDR: Stochastic Gradient Descent with Warm Restarts - 1608.03983.pdf>) — arXiv:1608.03983
@@ -116,6 +122,10 @@ Quantization, long-context extension, and inference kernels.
 - [Interfaze: The Future of AI is Built on Task-Specific Small Models](<papers/04-efficiency/inference-kernels/Interfaze: The Future of AI is Built on Task-Specific Small Models - 2602.04101.pdf>) — arXiv:2602.04101
 - [IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse](<papers/04-efficiency/inference-kernels/IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse - 2603.12201.pdf>) — arXiv:2603.12201
 
+**serving-systems/**
+- [Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving](<papers/04-efficiency/serving-systems/Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving - 2407.00079.pdf>) — arXiv:2407.00079
+- [DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation](<papers/04-efficiency/serving-systems/DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation - 2607.05147.pdf>) — arXiv:2607.05147
+
 ## 05-learning
 
 Preference optimization, RL, reasoning, and fine-tuning/adaptation.
@@ -134,6 +144,8 @@ Preference optimization, RL, reasoning, and fine-tuning/adaptation.
 - [Reuse your FLOPs: Scaling RL on Hard Problems by Recycling Computation](<papers/05-learning/reinforcement-learning/Reuse your FLOPs: Scaling RL on Hard Problems by Recycling Computation - 2601.18795.pdf>) — arXiv:2601.18795
 - [Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities](<papers/05-learning/reinforcement-learning/Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities - 2605.05812.pdf>) — arXiv:2605.05812
 - [Self-Distilled Policy Gradient](<papers/05-learning/reinforcement-learning/Self-Distilled Policy Gradient - 2606.04036.pdf>) — arXiv:2606.04036
+- [Mastering Atari Games with Limited Data](<papers/05-learning/reinforcement-learning/Mastering Atari Games with Limited Data - 2111.00210.pdf>) — arXiv:2111.00210 (EfficientZero)
+- [Ring-Zero: Scaling Zero RL to a Trillion Parameters for Emergent Reasoning](<papers/05-learning/reinforcement-learning/Ring-Zero: Scaling Zero RL to a Trillion Parameters for Emergent Reasoning - 2607.12395.pdf>) — arXiv:2607.12395
 - [The Art of Scaling Reinforcement Learning Compute for LLMs](https://arxiv.org/abs/2510.13786) — arXiv:2510.13786 — *not currently in the repo as a PDF; arXiv link only* (ScaleRL)
 - [Scaling Behaviors of LLM Reinforcement Learning Post-Training](https://arxiv.org/abs/2509.25300) — arXiv:2509.25300 — *not currently in the repo as a PDF; arXiv link only*
 - [IsoCompute Playbook: Optimally Scaling Sampling Compute for LLM RL](https://arxiv.org/abs/2603.12151) — arXiv:2603.12151 — *not currently in the repo as a PDF; arXiv link only*
@@ -156,6 +168,12 @@ Preference optimization, RL, reasoning, and fine-tuning/adaptation.
 - [Teaching Pretrained Language Models To...](<papers/05-learning/fine-tuning/TEACHING PRETRAINED LANGUAGE MODELS TO - 2511.07384.pdf>) — arXiv:2511.07384
 - [Memorization Dynamics in Knowledge Distillation for Language Models](<papers/05-learning/fine-tuning/Memorization Dynamics in Knowledge Distillation for Language Models - 2601.15394.pdf>) — arXiv:2601.15394
 - [PorTAL: Portable Task Adapters for LLMs](https://labs.ramp.com/research) — no arXiv ID; Ramp Labs research report (Geist, 2026) — *URL link only, not currently in the repo as a PDF*
+- [Knowledge Distillation of Black-Box Large Language Models](<papers/05-learning/fine-tuning/Knowledge Distillation of Black-Box Large Language Models - 2401.07013.pdf>) — arXiv:2401.07013
+- [Subliminal Learning Is Steering Vector Distillation](<papers/05-learning/fine-tuning/Subliminal Learning Is Steering Vector Distillation - 2606.00995.pdf>) — arXiv:2606.00995
+- [Compress-Distill: Reasoning Trace Compression for Efficient Knowledge Distillation](<papers/05-learning/fine-tuning/Compress-Distill: Reasoning Trace Compression for Efficient Knowledge Distillation - 2606.05988.pdf>) — arXiv:2606.05988
+
+**online-learning/**
+- [Dynamic Regret of Strongly Adaptive Methods](<papers/05-learning/online-learning/Dynamic Regret of Strongly Adaptive Methods - 1701.07570.pdf>) — arXiv:1701.07570
 
 ## 06-data
 
@@ -185,6 +203,7 @@ Data curation/filtering, datasets, and tokenization.
 - [Meta-Harness: End-to-End Optimization of Model Harnesses](<papers/07-applications/agents-swe/Meta-Harness: End-to-End Optimization of Model Harnesses - 2603.28052.pdf>) — arXiv:2603.28052
 - [ECHO: Terminal Agents Learn World Models for Free](<papers/07-applications/agents-swe/ECHO: Terminal Agents Learn World Models for Free - 2605.24517.pdf>) — arXiv:2605.24517
 - [Self-Revising Discovery Systems for Science: A Categorical Framework for Agentic Artificial Intelligence](<papers/07-applications/agents-swe/Self-Revising Discovery Systems for Science: A Categorical Framework for Agentic Artificial Intelligence - 2606.01444.pdf>) — arXiv:2606.01444
+- [Laguna M.1/XS.2 Technical Report](<papers/07-applications/agents-swe/Laguna M.1-XS.2 Technical Report - 2605.27605.pdf>) — arXiv:2605.27605
 - [Kimi k1.5: Scaling Reinforcement Learning with LLMs](https://arxiv.org/abs/2501.12599) — arXiv:2501.12599 — *not currently in the repo as a PDF; arXiv link only*
 - [Kimi-Researcher: End-to-End RL Training for Emerging Agentic Capabilities](https://moonshotai.github.io/Kimi-Researcher/) — no arXiv ID; Moonshot AI blog — *URL link only, not currently in the repo as a PDF*
 - [Composer 2 Technical Report](https://arxiv.org/abs/2603.24477) — arXiv:2603.24477 — *not currently in the repo as a PDF; arXiv link only*
@@ -195,6 +214,9 @@ Data curation/filtering, datasets, and tokenization.
 - [AgentRL: Scaling RL for Multi-Turn, Multi-Task Agents](https://arxiv.org/abs/2510.04206) — arXiv:2510.04206 — *not currently in the repo as a PDF; arXiv link only*
 - [The Landscape of Agentic Reinforcement Learning for LLMs: A Survey](https://arxiv.org/abs/2509.02547) — arXiv:2509.02547 — *not currently in the repo as a PDF; arXiv link only*
 - [Training Long-Context, Multi-Turn Software Engineering Agents with Reinforcement Learning](https://arxiv.org/abs/2508.03501) — arXiv:2508.03501 — *not currently in the repo as a PDF; arXiv link only*
+
+**generative-media/**
+- [Music Transformer: Generating Music with Long-Term Structure](<papers/07-applications/generative-media/Music Transformer: Generating Music with Long-Term Structure - 1809.04281.pdf>) — arXiv:1809.04281
 
 ## 08-evaluation
 
@@ -207,9 +229,11 @@ Benchmarking, training-dynamics analysis, and safety/misalignment.
 
 **analysis/**
 - [Analysing the Impact of Sequence Composition on Language Model Pre-Training](<papers/08-evaluation/analysis/Analysing The Impact of Sequence Composition on Language Model Pre-Training - 2402.13991.pdf>) — arXiv:2402.13991
+- [Technical Report on the Pangram AI-Generated Text Classifier](<papers/08-evaluation/analysis/Technical Report on the Pangram AI-Generated Text Classifier - 2402.14873.pdf>) — arXiv:2402.14873
 
 **safety/**
 - [Natural Emergent Misalignment from Reward Hacking](<papers/08-evaluation/safety/Natural Emergent Misalignment from Reward Hacking.pdf>) — no arXiv ID on file
+- [AuthorMist: Evading AI Text Detectors with Reinforcement Learning](<papers/08-evaluation/safety/AuthorMist: Evading AI Text Detectors with Reinforcement Learning - 2503.08716.pdf>) — arXiv:2503.08716
 
 ---
 
@@ -222,3 +246,5 @@ A 2026-06-20 audit found that titles and arXiv IDs had been cyclically swapped a
 A 2026-06-20 addition brought in 25 RL-scaling, RL-frameworks, agentic-RL, and case-study resources (ScaleRL, Scaling Behaviors, IsoCompute Playbook, ProRL V1/V2, Polaris, HybridFlow/verl, FP8-RL, AReaL, AsyncFlow, DeepSWE, AutoForge, Agent-R1, AgentRL, the Agentic RL survey, the long-context SWE-RL paper, Kimi K1.5, Kimi-Researcher, Composer 2/2.5, Olmo 3, MiniMax-M1/M2, and the Nemotron 3 family). Binary PDF downloads from arxiv.org are not reachable from this environment's sandbox (egress proxy blocks the domain), so all 25 are recorded as URL-only references, following the same convention already used for DeepSeek-V3. See [[rl-scaling-laws]] and [[agentic-rl]] in `ai-machine-learning/wiki/` for the full synthesis of this material, and the extended sections in [[rl-training-systems]], [[frontier-async-rl]], and [[model-report-case-studies]].
 
 A later 2026-06-20 pass ingested the 15 PDFs that had been sitting in `papers/TO-BE-ORGANIZED/`: 2 were exact duplicates of papers already in the index (DeepSeek LLM: Scaling Open-Source Language Models with Longtermism, 2401.02954; Towards Greater Leverage: Scaling Laws for Efficient Mixture-of-Experts Language Models, 2507.17702) and were deleted rather than re-added. The remaining 15 were renamed to the `<Title> - <arXiv ID>.pdf` convention, filed into their correct category subfolders, and added above: u-µP (2407.17465) and CompleteP (2505.01618) in `03-scaling/training-optimization`; Pre-training under infinite compute (2509.14786) in `03-scaling/compute-optimal`; Cartridges (2506.06266) and Do Language Models Need Sleep? (2605.26099) in `04-efficiency/context-extension`; IndexCache (2603.12201) in `04-efficiency/inference-kernels`; AutoHarness (2603.03329), Meta-Harness (2603.28052), ECHO (2605.24517), and Self-Revising Discovery Systems for Science (2606.01444) in `07-applications/agents-swe`; Long-Horizon Q-Learning (2605.05812) and Self-Distilled Policy Gradient (2606.04036) in `05-learning/reinforcement-learning`; Memorization Dynamics in Knowledge Distillation (2601.15394) in `05-learning/fine-tuning`; Qwen-VLA (2605.30280) in `01-models/llama-qwen-gemma`; and POSTTRAINBENCH (2603.08640) in `08-evaluation/benchmarking`. ECHO's arXiv ID was confirmed via web search (not self-stamped in the PDF text) and verified against the paper's own abstract. Each paper's insights are written up with local-PDF citations in the relevant `ai-machine-learning/wiki/` pages (see their "Sources" sections). `papers/TO-BE-ORGANIZED/` is now empty.
+
+A 2026-07-18 pass ingested 15 additional PDFs from `papers/TO-BE-ORGANIZED/`: Dynamic Regret (1701.07570), relative-position self-attention (1803.02155), Music Transformer (1809.04281), EfficientZero (2111.00210), Proxy-KD (2401.07013), Pangram's detector report (2402.14873), Mooncake (2407.00079), Mixture-of-Transformers (2411.04996), AuthorMist (2503.08716), LatentMoE (2601.18089), Subliminal Learning (2606.00995), Compress-Distill (2606.05988), DSpark (2607.05147), Ring-Zero (2607.12395), and xHC (2607.14530). All were identified from their full PDF text, checked for duplicate arXiv IDs, renamed and filed under the most specific category, and synthesized into the wiki with local-PDF citations. Four new topic pages were added: `online-learning-dynamic-regret`, `ai-generated-text-detection`, `multimodal-models`, and `subliminal-learning`.

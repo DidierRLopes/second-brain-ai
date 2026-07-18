@@ -1,6 +1,6 @@
 # papers/
 
-This folder holds 88 arXiv papers organized into thematic subfolders. The full per-paper listing lives in `../PAPERS_INDEX.md`; this file documents the categorization scheme itself, so a paper can be filed correctly without re-deriving the taxonomy from scratch.
+This folder holds 104 arXiv papers organized into thematic subfolders. The full per-paper listing lives in `../PAPERS_INDEX.md`; this file documents the categorization scheme itself, so a paper can be filed correctly without re-deriving the taxonomy from scratch.
 
 The PDF files themselves are gitignored and not pushed — see the root [README.md](../README.md#why-papers-isnt-pushed) for why. If you've cloned this repo, the folder structure and index are here, but you'll need to fetch the actual PDFs from arXiv yourself (the index links straight to each one).
 
@@ -15,8 +15,9 @@ papers/
 │   ├── llama-qwen-gemma/       Llama, Qwen (incl. Qwen-VLA), Gemma, OLMo
 │   └── small-efficient/        Sub-3B "small/efficient" releases (MiniCPM, SmolLM2)
 ├── 02-architecture/          Architecture-level techniques, not full model releases
-│   ├── transformers/           Foundational attention-head variants (MQA, GQA)
+│   ├── transformers/           Transformer mechanics and residual-stream variants (MQA, GQA, xHC)
 │   ├── attention-variants/     Positional encoding & attention mechanisms (RoPE, FlashAttention)
+│   ├── multimodal/             Architectures specialized across text, image, audio, or other modalities
 │   └── alternatives/           Non-transformer / hybrid sequence architectures (SSMs)
 ├── 03-scaling/                Scaling laws & compute-optimal training
 │   ├── scaling-laws/           Parameter/data/compute scaling laws (Chinchilla, PaLM)
@@ -26,18 +27,21 @@ papers/
 ├── 04-efficiency/             Quantization, long-context, inference speed
 │   ├── quantization/           Post-training quantization methods (QuIP, additive quantization)
 │   ├── context-extension/      Long-context training/extension (YARN, RULER, Cartridges)
-│   └── inference-kernels/      Inference-time kernel/caching speedups (IndexCache)
+│   ├── inference-kernels/      Inference-time kernel/caching speedups (IndexCache)
+│   └── serving-systems/        Distributed serving and speculative-decoding systems
 ├── 05-learning/               Preference optimization, RL, reasoning, fine-tuning
 │   ├── alignment-preferences/  Preference-optimization objectives (DPO, KTO, ORPO)
 │   ├── reinforcement-learning/ Core RL algorithms & training frameworks (GAE, DAPO)
 │   ├── reasoning/              Reasoning-specific training, data synthesis, behavior analysis
-│   └── fine-tuning/            SFT, distillation, imitation-learning methods
+│   ├── fine-tuning/            SFT, distillation, imitation-learning methods
+│   └── online-learning/        Regret guarantees for changing online environments
 ├── 06-data/                   Data curation, datasets, tokenization
 │   ├── curation-filtering/     Data filtering/curation pipelines (FineWeb2)
 │   ├── datasets/               Dataset release papers (The Pile)
 │   └── tokenization/           Tokenizer design & cross-lingual transfer
 ├── 07-applications/           Applied/agentic systems
-│   └── agents-swe/             Coding agents, SWE benchmarks, agent harnesses
+│   ├── agents-swe/             Coding agents, SWE benchmarks, agent harnesses
+│   └── generative-media/       Music, image, video, and other media-generation systems
 ├── 08-evaluation/             Benchmarking, training-dynamics analysis, safety
 │   ├── benchmarking/            Capability / post-training benchmarks
 │   ├── analysis/                Training-dynamics analysis

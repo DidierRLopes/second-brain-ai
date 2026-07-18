@@ -44,6 +44,22 @@ A natural question about all the distillation recipes above: does compressing a 
 
 **Privacy implication — soft vs. hard distillation aren't equivalent.** Comparing logit-level ("soft," KL-divergence-trained) against sequence-level ("hard," trained on the teacher's generated outputs as if they were labels) distillation: the two have similar *overall* memorization rates, and the soft-distilled student's memorized set captures over 70% of what the hard-distilled student memorizes — but **hard distillation inherits 2.7× more teacher-specific examples than soft distillation**. For privacy-sensitive distillation pipelines (e.g., distilling from a teacher trained on data the student shouldn't be able to leak), this is a concrete, actionable reason to prefer soft logit-matching over hard-label/generated-output distillation, beyond the general utility argument made for soft targets in the Hinton section above.
 
+## Proxy-KD for Black-Box Teachers
+
+[Proxy-KD (2401.07013)](../../papers/05-learning/fine-tuning/Knowledge Distillation of Black-Box Large Language Models - 2401.07013.pdf) addresses the missing soft labels of proprietary teachers. A larger white-box proxy is first warmed up on teacher outputs and aligned to the black-box teacher using hard-label NLL plus iterative DPO, treating teacher responses as preferred over the proxy's own samples. The student then combines hard-label NLL on black-box outputs with KL matching to the proxy's token distribution. A weight based on the proxy likelihood of the teacher response downweights examples where proxy-teacher alignment is weak.
+
+Using GPT-4 as teacher, Llama-2-70B as proxy, and Llama-1/2-7B students, Proxy-KD reached average benchmark scores of 52.09 and 56.78, versus 49.11 and 53.66 for vanilla black-box fine-tuning. Alignment was essential: removing it reduced BBH by 10.40 points and GSM8K by 5.53 points for the Llama-2 student. Removing the proxy entirely reduced ARC by 4.24, BBH by 6.72, and GSM8K by 3.56. The method's cost is an additional large-model alignment stage and online proxy sampling; results were limited to Llama-family backbones.
+
+## Compressing Reasoning Traces Before Distillation
+
+[Compress-Distill (2606.05988)](../../papers/05-learning/fine-tuning/Compress-Distill: Reasoning Trace Compression for Efficient Knowledge Distillation - 2606.05988.pdf) tests whether verified teacher reasoning can be rewritten into a shorter target before student fine-tuning. Qwen3.5-397B-A17B and gpt-oss-120B generated roughly 283,000 correct traces each; Llama-3.3-70B and Ministral-3-14B compressed them to 8.6-21.0% of their original character length.
+
+Across 48 main runs and seven length-matched truncation ablations, compressed traces used 12-30% as many training tokens, reduced wall-clock training by 2.0-7.6x, and shortened student reasoning by 3-19x. Students retained up to 96% of raw-trace accuracy and achieved up to 18x higher accuracy per generated token, but **raw traces won on absolute accuracy at every tested scale and under both teachers**. Model-written compression usually beat naive prefix truncation at the same token budget, showing that preservation of answer-bearing reasoning structure matters. Answer-only training was cheapest but performed worst and became unstable under full fine-tuning. The practical choice is a Pareto trade-off: use raw traces for peak quality, compressed traces when training/inference cost or context truncation dominates.
+
+## Hidden Behavioral Transfer
+
+Distillation can transmit more than explicit semantic content. [[subliminal-learning]] documents evidence that same-family students can reconstruct a teacher's activation-space steering direction from semantically unrelated outputs, especially under LoRA with adaptive optimizers. Output filtering is therefore not a complete behavioral-safety check for synthetic distillation data.
+
 ## Distillation vs Quantization vs Fine-Tuning
 
 These three techniques serve different purposes and are often combined:
@@ -64,6 +80,8 @@ In practice, you might distill a 70B model into a 7B model, then quantize the 7B
 - [[scaling-laws]] — Distillation changes the compute-quality tradeoff
 - [[frontier-training-playbook]] — Apple AFM (distill-and-prune 6.4B→3B) and Gemma 2 (27B→9B, 7B→2B) as production pretrain-time distillation case studies
 - [[safety-misalignment]] — Memorization and training-data extraction as a privacy/safety concern more broadly
+- [[subliminal-learning]] — hidden trait transfer as steering-vector distillation
+- [[reasoning-data-generation]] — generating and filtering teacher reasoning traces
 
 ## Sources
 - Distilling the Knowledge in a Neural Network — Hinton et al. (arxiv:1503.02531)
@@ -71,3 +89,6 @@ In practice, you might distill a 70B model into a 7B model, then quantize the 7B
 - [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (2501.12948)](../../papers/01-models/gpt-deepseek-v2-v3/DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning - 2501.12948.pdf)
 - [QED-Nano: Teaching a Tiny Model to Prove Hard Theorems (2604.04898)](../../papers/05-learning/reasoning/QED-Nano: Teaching a Tiny Model to Prove Hard Theorems - 2604.04898.pdf)
 - [Memorization Dynamics in Knowledge Distillation for Language Models (2601.15394)](../../papers/05-learning/fine-tuning/Memorization Dynamics in Knowledge Distillation for Language Models - 2601.15394.pdf) — Borkar, Chadha, Mireshghallah, Zhang et al., Meta Superintelligence Labs / FAIR / Northeastern / CMU (2026)
+- [Knowledge Distillation of Black-Box Large Language Models / Proxy-KD (2401.07013)](../../papers/05-learning/fine-tuning/Knowledge Distillation of Black-Box Large Language Models - 2401.07013.pdf) — aligned white-box proxy, DPO, sample-weighted KL, and black-box teacher results.
+- [Compress-Distill: Reasoning Trace Compression for Efficient Knowledge Distillation (2606.05988)](../../papers/05-learning/fine-tuning/Compress-Distill: Reasoning Trace Compression for Efficient Knowledge Distillation - 2606.05988.pdf) — trace compression ratios, training and inference savings, truncation controls, and the accuracy-efficiency frontier.
+- [Subliminal Learning Is Steering Vector Distillation (2606.00995)](../../papers/05-learning/fine-tuning/Subliminal Learning Is Steering Vector Distillation - 2606.00995.pdf) — non-semantic behavioral transfer through activation-space directions.

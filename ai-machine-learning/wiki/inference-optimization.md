@@ -74,6 +74,8 @@ Benefits over co-located serving:
 - Prefill doesn't interrupt decode (reduces latency variance)
 - Scales prefill and decode capacity independently
 
+**Mooncake in production.** [Mooncake (2407.00079)](../../papers/04-efficiency/serving-systems/Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving - 2407.00079.pdf) extends phase separation into a KV-cache-centric architecture: CPU DRAM/SSD form a distributed prefix-cache tier, prefill streams cache state layer-by-layer to decode, and a conductor chooses nodes by predicted TTFT/TBT rather than simple cache-hit length. It improved SLO-compliant throughput 20-40% on two public long-context datasets, 50-525% on simulated 16k-128k prompts, and handled about 75% more requests than vLLM on a real trace. See [[kv-cache]] for the cache hierarchy and overload policy.
+
 ### Quantization Effects on Inference
 
 | Precision | Effective weight size | B_critical (TPUv5p) |
@@ -133,6 +135,14 @@ Compute overhead works in the opposite direction: with \(\mu = F_{M_q}/F_{M_p}\)
 
 Larger \(\gamma\) increases expected tokens per iteration with diminishing returns, while iteration cost \(\gamma c + 1\) grows linearly — so when \(c=0\) (free drafter) larger \(\gamma\) is always at least as good, but for \(c>0\) there's an interior optimum. A worked example at \(\alpha=0.8\), \(c=0.02\) finds the speedup peaks near \(\gamma=10\) (improvement factor ≈3.81) and then declines as drafting overhead dominates (e.g., 3.32× by \(\gamma=25\)). There's a hard theoretical ceiling regardless of \(\gamma\): removing the per-step cap entirely (an oracle that drafts an unbounded number of tokens) gives \(E(N_{\text{oracle}}) = 1/(1-\alpha)\) — 5 tokens/iteration at \(\alpha=0.8\) — which no finite \(\gamma\) can exceed. This oracle is unrealizable (knowing the position-level acceptance rate in advance would itself require running \(M_p\)), but it bounds adaptive-\(\gamma\) schemes.
 
+### DSpark: Semi-Autoregressive Drafting and Load-Aware Verification
+
+[DSpark (2607.05147)](../../papers/04-efficiency/serving-systems/DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation - 2607.05147.pdf) combines a deep parallel draft backbone with a lightweight sequential output head. The backbone preserves nearly constant draft latency as proposal length grows; the sequential head conditions later draft tokens on the sampled prefix, reducing the suffix-decay and multimodal-collision problem of independent parallel prediction.
+
+A confidence head estimates per-position prefix survival, and a hardware-aware scheduler selects the verification length per request using current engine throughput. This matters because long proposals are valuable under light load but occupy scarce batch capacity under concurrency if their suffix is unlikely to survive.
+
+Across Qwen3-4B/8B/14B targets, DSpark improved macro-average accepted length by 26.7-30.9% over autoregressive Eagle3 and 16.3-18.4% over parallel DFlash. Extending proposals from 4 to 16 tokens added only 0.2-1.3% round latency over DFlash at batch size 128. In DeepSeek-V4 production traffic, DSpark increased per-user generation speed by 60-85% for V4-Flash and 57-78% for V4-Pro at matched aggregate throughput. Because rejection sampling still uses the target probabilities, the acceleration preserves the target distribution rather than trading away output quality.
+
 ## Continuous Batching
 
 Instead of processing batches of fixed size, continuously add new requests and remove completed ones. This maximizes GPU utilization since different requests finish at different times. Implemented in vLLM, TGI, and most modern serving frameworks.
@@ -168,6 +178,7 @@ Instead of processing batches of fixed size, continuously add new requests and r
 - [[attention-variants]] — FlashAttention and GQA reduce compute and memory
 - [[scaling-laws]] — Inference cost drives model size decisions
 - [[practical-quantization]] — Choosing quantization formats for serving
+- [[applied-ml-systems]] — SLOs, overload, and production scheduler design
 
 ## Sources
 - [How to Scale Your Model — Austin et al., Google DeepMind (2025)](https://jax-ml.github.io/scaling-book/training) — prefill/decode roofline, step time formula, disaggregated serving ratio, MoE inference thresholds
@@ -179,3 +190,5 @@ Instead of processing batches of fixed size, continuously add new requests and r
 - The Llama Hitchhiking Guide to Local LLMs — Omar Sanseviero
 - [Interfaze: The Future of AI is Built on Task-Specific Small Models (2602.04101)](../../papers/04-efficiency/inference-kernels/Interfaze: The Future of AI is Built on Task-Specific Small Models - 2602.04101.pdf)
 - **Speculative Decoding - The Bits and the Bytes! (Part 1) — Aakash Kumar Nain (June 19, 2026)**, https://aakashkumarnain.github.io/posts/ml_dl_concepts/specdec_part1.html (`raw/speculative-decoding-aakashkumarnain-part1.md`). Source for the acceptance/rejection rule, the adjusted-distribution exactness proof, the acceptance-rate/total-variation-distance connection, the wall-time improvement and compute-overhead formulas, and the γ-choice/oracle-bound analysis above.
+- [Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving (2407.00079)](../../papers/04-efficiency/serving-systems/Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving - 2407.00079.pdf) — SLO-aware prefill/decode separation, cache scheduling, and real/simulated throughput results.
+- [DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation (2607.05147)](../../papers/04-efficiency/serving-systems/DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation - 2607.05147.pdf) — semi-autoregressive drafts, survival confidence, engine-aware verification, and production speedups.

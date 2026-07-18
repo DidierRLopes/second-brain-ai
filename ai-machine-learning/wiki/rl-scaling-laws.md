@@ -40,12 +40,19 @@ Polaris trains Polaris-4B-Preview and Polaris-7B-Preview, with the 4B model reac
 
 Three concrete links are worth tracking explicitly when navigating between these resources: Polaris's 53K dataset is reused verbatim as ScaleRL's training data; ScaleRL benchmarks directly against ProRL V1 (training ~3.5× longer); and ScaleRL's FP32-LM-head finding (`A`: 0.52→0.61) is independently corroborated by MiniMax-M1's training run, documented in [[frontier-async-rl]]. The IsoCompute Playbook explicitly cites both ScaleRL and Scaling Behaviors as its only two functional-form predecessors, and frames its own contribution as turning their descriptive curves into a prescriptive sampling-allocation policy.
 
+## Ring-Zero: What Changes at One Trillion Parameters
+
+**Ring-Zero** scales zero-shot reinforcement learning from a 104B-parameter comparison model to a **one-trillion-parameter MoE**. Its contribution is as much systems engineering as algorithm design: a pipeline-aware clipped-ratio objective prevents stale rollout policies from producing destructive updates, a training–inference correction narrows numerical drift between the two execution stacks, and a staged curriculum expands context from 4K to 64K tokens before self-distillation and sample-level filtering sharpen the final policy. The first training stage reaches **84.2 on AIME 2026**, versus **78.0** for the 104B model; the second stage raises the trillion-parameter model to **93.2**.
+
+The scale exposes a useful failure mode: reasoning length has **inertia**. Average outputs grow from 2,353 tokens on low-difficulty problems to 8,085 on medium and 20,817 on high difficulty, but once the policy learns long traces it does not automatically become concise again. The authors therefore separate a **discovery phase**, where long rollouts find new solution paths, from a **sharpening phase**, where self-distillation and filtered samples consolidate them. This is an important correction to a simple “more RL compute is always better” story: rollout length, problem difficulty, numerical consistency, and the policy-update pipeline must be co-designed at trillion-parameter scale.
+
 ## Related Topics
 
 - [[scaling-laws]] — pre-training scaling laws (Chinchilla, data-constrained, MoE leverage) that this note's RL-stage laws complement
 - [[rl-training-systems]] — the PipelineRL/GRPO/DAPO systems that ScaleRL and ProRL build on
 - [[frontier-async-rl]] — CISPO, FP32 LM head, and other async-execution techniques shared with ScaleRL and MiniMax-M1
 - [[reasoning-models]] — RLVR and test-time compute, the capability axis these recipes are trying to scale
+- [[reasoning-data-generation]] — Ring-Zero's discovery/sharpening curriculum turns long successful rollouts into filtered training data
 - [[alignment-methods]] — GRPO, DAPO, and the broader RL-post-training algorithm family
 
 ## Sources
@@ -53,6 +60,7 @@ Three concrete links are worth tracking explicitly when navigating between these
 - [The Art of Scaling Reinforcement Learning Compute for LLMs (2510.13786)](https://arxiv.org/abs/2510.13786) — not currently in the repo as a PDF; arXiv link only. Sigmoidal RL scaling law; ScaleRL recipe.
 - [Scaling Behaviors of LLM Reinforcement Learning Post-Training (2509.25300)](https://arxiv.org/abs/2509.25300) — not currently in the repo as a PDF; arXiv link only. Power-law RL scaling across the Qwen2.5 family; k(N) saturation.
 - [IsoCompute Playbook: Optimally Scaling Sampling Compute for LLM RL (2603.12151)](https://arxiv.org/abs/2603.12151) — not currently in the repo as a PDF; arXiv link only. Compute-optimal rollout/batch/step allocation.
+- [Ring-Zero: Scaling Zero RL to a Trillion Parameters for Emergent Reasoning (2607.12395)](../../papers/05-learning/reinforcement-learning/Ring-Zero: Scaling Zero RL to a Trillion Parameters for Emergent Reasoning - 2607.12395.pdf) — pipeline-aware zero RL, long-context curriculum, and the discovery-to-sharpening transition at trillion-parameter scale.
 - [Scaling Up RL: Unlocking Diverse Reasoning in LLMs via Prolonged Training / ProRL (2507.12507)](https://arxiv.org/abs/2507.12507) — not currently in the repo as a PDF; arXiv link only. Prolonged-training stability via periodic reference-policy resets.
 - [ProRL V2 — Prolonged Training Validates RL Scaling Laws](https://hijkzzz.notion.site/prorl-v2) — Notion page unreachable (client-rendered, no extractable text); content here limited to what is independently confirmable. Treat secondhand specifics as unverified.
 - [POLARIS: A POst-training recipe for scaling reinforcement Learning on Advanced ReasonIng modelS](https://hkunlp.github.io/blog/2025/Polaris/) — HKU NLP Group blog. Calibrated difficulty, diversity sampling, YaRN length extrapolation; dataset reused by ScaleRL.

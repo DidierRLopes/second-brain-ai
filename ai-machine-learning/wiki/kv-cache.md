@@ -127,6 +127,14 @@ The effect holds on a realistic task too: fine-tuning pretrained **Jet-Nemotron 
 
 The method also works with **sliding-window eviction** (retaining the most recent L-1 tokens rather than hard-clearing the whole window): fine-tuning Ouro 1.4B with window L=512 (so the full problem spans 4-6× the window), sleep loops raise GSM-Infinite two-operation accuracy from 0.596 to 0.905 — a **52% relative improvement** — showing sleep helps not just multi-step reasoning but also basic retrieval/compression when the active window is much smaller than the sequence. **Training-cost caveat**: because window j+1 can't be processed until window j finishes its N sleep passes, training is sequential across context windows (unlike standard parallel teacher-forcing), and cost grows roughly linearly with N; the authors note this hurts wall-clock time only when the window size L is too small to keep the GPU saturated — at large L the lost sequence-parallelism doesn't translate into a real slowdown. The paper is explicit that its "failure" claims for vanilla SSM-attention hybrids are budget-controlled (fixed training-token budget), not a claim that hybrids could never learn the task with unlimited data/compute.
 
+## Mooncake: KV Cache as a Distributed Serving Tier
+
+[Mooncake (2407.00079)](../../papers/04-efficiency/serving-systems/Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving - 2407.00079.pdf) treats KV cache as the central scheduling object in Kimi's production serving system. Prefill and decode run in separate pools, while underused CPU DRAM and SSD form a distributed cache behind GPU VRAM. A global conductor chooses a prefill/decode pair, reuses or transfers the longest useful prefix, streams newly generated KV state layer-by-layer from prefill to decode, and balances cache reuse against TTFT/TBT service-level objectives.
+
+The architecture makes two constraints explicit. Fetching a remote prefix can save compute but worsen TTFT; enlarging decode batches improves model utilization but can violate TBT. Mooncake therefore predicts prefill queue and execution time, replicates hot cache blocks, swaps cold blocks, and rejects requests early under overload when later decode capacity is unlikely to exist. In a real 23,000-request trace, prediction-based early rejection reduced rejected requests from 4,183 to 3,589 versus the baseline policy.
+
+Against a coupled vLLM baseline, Mooncake improved SLO-compliant throughput by 20% on ArXiv summarization and 40% on L-Eval. Simulated 16k-128k prompts showed 50-525% gains, and a 20-node real-workload comparison processed about 75% more requests while meeting both SLOs. The practical lesson is that KV-cache capacity, locality, transfer bandwidth, and future decode slots must be scheduled jointly; cache reuse alone is not the objective.
+
 ## Scaling Context: Ring Attention
 
 Ring Attention (Liu et al., 2023) distributes the KV cache across GPUs in a ring topology with overlapped computation and communication. This makes context length scale linearly with the number of devices — enabling 1M+ token contexts by using more GPUs rather than bigger GPUs.
@@ -173,6 +181,7 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [[quantization-fundamentals]] — KV cache can be quantized to reduce memory further
 - [[rl-training-systems]] — prime-rl's Ring Attention/Ulysses/custom-DSA context parallelism trains GLM-5 at 131k+ sequence length
 - [[mixture-of-experts]] — DSA's per-layer indexer and Wide EP are the MoE-side counterpart to CP's sequence-side sharding
+- [[applied-ml-systems]] — resource pools, SLOs, and overload-aware scheduling
 
 ## Sources
 - [How to Scale Your Model — Austin et al. (2025)](https://jax-ml.github.io/scaling-book/training) — exact KV size formula, LLaMA 70B example, decode step load time
@@ -191,5 +200,6 @@ SGLang's RadixAttention stores KV caches in a radix tree, enabling automatic pre
 - [IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse (2603.12201)](../../papers/04-efficiency/inference-kernels/IndexCache: Accelerating Sparse Attention via Cross-Layer Index Reuse - 2603.12201.pdf) — cross-layer reuse of DeepSeek Sparse Attention's top-k indexer; up to 1.82× prefill speedup.
 - [Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference (2605.26099)](../../papers/04-efficiency/context-extension/Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference - 2605.26099.pdf) — sleep-time consolidation of evicted KV-cache context into SSM fast weights.
 - [KV Caching Explained — Hugging Face (Not Lain)](../raw/kv-caching-explained-huggingface.md) — step-by-step process, PyTorch `KVCache` pseudocode, `use_cache`/`cache_implementation` GenerationConfig example, 5.21× T4 benchmark on SmolLM2-1.7B.
+- [Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving (2407.00079)](../../papers/04-efficiency/serving-systems/Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving - 2407.00079.pdf) — distributed cache tier, disaggregated prefill/decode, cache-aware scheduling, and overload rejection.
 - Coding the KV Cache from Scratch — Sebastian Raschka
 - "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md` — Ring Attention vs. Ulysses context parallelism, and GLM-5's custom DSA context-parallel scheme, used to train at 131k+ sequence length.

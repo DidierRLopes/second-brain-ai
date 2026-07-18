@@ -195,6 +195,16 @@ TD3 (Twin Delayed DDPG) is a deterministic alternative to SAC without entropy ma
 
 ---
 
+## EfficientZero: Sample-Efficient MuZero
+
+[EfficientZero (2111.00210)](../../papers/05-learning/reinforcement-learning/Mastering Atari Games with Limited Data - 2111.00210.pdf) adapts MuZero to the low-data visual-control regime by addressing three failure modes that become severe when replay data is scarce:
+
+1. A SimSiam-style temporal consistency loss trains the predicted latent next state to match the representation of the real next observation, supplying richer supervision than scalar reward/value/policy losses.
+2. An LSTM predicts the discounted **value prefix** end-to-end instead of summing independently predicted rewards, reducing compounding error from aliased imagined states.
+3. A model-based off-policy correction shortens the real replay prefix for older trajectories, then re-runs MCTS with the current policy at the bootstrap state.
+
+On Atari 100k - 100,000 environment steps, roughly two hours of play - EfficientZero reported mean and median human-normalized scores of 1.943 and 1.090 and exceeded human performance on 14 of 26 games. DQN's comparable mean score used 500 times more frames. On three DMControl 100k image tasks, EfficientZero was competitive with or better than a SAC oracle trained from ground-truth states. The result is a useful design lesson: model-based RL becomes sample-efficient only when representation learning, model-error control, and replay-policy mismatch are handled together.
+
 ## Long-Horizon Q-Learning (LQL): Bounding Compounding TD Error
 
 SAC and the other value-based methods above all train their critic with the same basic mechanism: bootstrapped temporal-difference (TD) updates, `Q(s,a) ← r + γ Q(s', a')`. [Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities (2605.05812)](../../papers/05-learning/reinforcement-learning/Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities - 2605.05812.pdf) (Shi & Finn, Stanford) tackles a specific failure mode of that mechanism: **bootstrapping makes long-horizon Q-learning brittle** because estimation errors at later states propagate backward through TD updates and compound over time — this is the "deadly triad" (off-policy learning + bootstrapping + function approximation) made concrete.
@@ -230,7 +240,9 @@ The key engineering property: **LQL computes these hinge penalties entirely from
 - [[rl-fundamentals]] — Q-learning, Bellman equations, TD learning basics
 - [[policy-gradient-actor-critic]] — the policy-gradient family that LQL's value-based approach contrasts with
 - [[rl-training-systems]], [[agentic-rl]] — long-horizon credit assignment in LLM-agent RL settings (not covered here per scope)
+- [[deep-learning-fundamentals]] — self-supervised representation learning used by EfficientZero
 
 ## Sources
 
 - [Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities (2605.05812)](../../papers/05-learning/reinforcement-learning/Long-Horizon Q-Learning: Accurate Value Learning via n-Step Inequalities - 2605.05812.pdf) — Shi & Finn, Stanford
+- [Mastering Atari Games with Limited Data / EfficientZero (2111.00210)](../../papers/05-learning/reinforcement-learning/Mastering Atari Games with Limited Data - 2111.00210.pdf) — temporal consistency, value-prefix prediction, model-based off-policy correction, and Atari/DMControl 100k results.

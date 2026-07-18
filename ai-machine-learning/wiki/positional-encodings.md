@@ -157,6 +157,14 @@ The note frames the two fixes as exhaustive: **"(1) use vectors that are already
 
 i.e., add a bias vector that linearly penalizes attending to tokens farther away from position `i` (in either direction), applied on top of the raw dot-product scores `k_{1:n}q_i ∈ R^n` — no learned parameters, just a fixed distance penalty. The note's own editorial reaction to this working as well as it does: "it's odd that this works; but interesting!"
 
+## Learned Relative Position Representations
+
+[Shaw, Uszkoreit, and Vaswani (1803.02155)](../../papers/02-architecture/attention-variants/Self-Attention with Relative Position Representations - 1803.02155.pdf) moved position information from the input embeddings into pairwise attention relations. For positions `i` and `j`, the attention compatibility and value aggregation receive learned vectors indexed by the clipped displacement `clip(j-i, k)`. Clipping creates `2k+1` relation labels, bounds storage, and lets the same representation apply to sequence lengths not seen in training.
+
+The implementation shares relation tensors across heads and decomposes compatibility into the ordinary `QK^T` term plus a query-relative-position term. On WMT 2014, the large Transformer improved English-German BLEU from 27.9 to 29.2 and English-French from 41.2 to 41.5. Adding absolute sinusoidal encodings on top did not improve quality. A useful ablation found that relative keys carried most of the gain: removing relative values left English-German development BLEU unchanged at 25.8, while removing the relative-key term reduced it to 25.3; removing both collapsed it to 12.5. The cost was a reported 7% reduction in training steps per second.
+
+[Music Transformer (1809.04281)](../../papers/07-applications/generative-media/Music Transformer: Generating Music with Long-Term Structure - 1809.04281.pdf) then removed the `O(L^2D)` intermediate tensor used by the original relative-attention formulation. Its skewing transformation computes relative logits with `O(LD)` intermediate memory, making thousand-token symbolic-music sequences practical. On JSB Chorales, relative attention reduced validation NLL from 0.417 to 0.357, and adding absolute timing, instrument labels, relative pitch, and relative time reached 0.335. On Piano-e-Competition, relative global attention achieved 1.835 NLL versus 1.861 for the dense baseline, and relative local attention reached 1.840. Conditional melody accompaniment improved from 2.066 to 1.786 NLL. Qualitatively, the relative model maintained musical timing, repeated and varied motifs, and generated coherent continuations twice the training length.
+
 ## Where Positional Encoding Sits in the Stack
 
 Positional encoding choices are **orthogonal but interacting** with [[attention-variants|attention pattern choices]]:
@@ -174,6 +182,7 @@ For long-context production: choose a positional encoding approach (RoPE + YaRN,
 - [[hybrid-architectures]] — linear-attention alternatives that handle long context structurally
 - [[inference-optimization]] — Context length extension is critical for inference
 - [[frontier-training-playbook]] — where positional encoding sits in the architecture decision tree
+- [[generative-models]] — Music Transformer applies memory-efficient relative attention to symbolic generation
 
 ## Sources
 
@@ -189,3 +198,5 @@ For long-context production: choose a positional encoding approach (RoPE + YaRN,
 - Alex Wa, "Frontier model training methodologies" (Jan 31, 2026). See `raw/alex-wa-frontier-model-training-methodologies.md`.
 - SmolLM3 report (RNoPE adoption, 4k → 128k stage progression). See `raw/smollm3-hugging-face-report.md`.
 - [CS224n: Self-Attention & Transformers (Hewitt, Stanford, 2023 draft)](../raw/cs224n-self-attention-transformers.md) — source: https://web.stanford.edu/class/cs224n/readings/cs224n-self-attention-transformers-2023_draft.pdf — order-invariance proof for self-attention, the two-options framing (position-dependent inputs vs. modifying attention), and the explicit ALiBi bias-vector formula.
+- [Self-Attention with Relative Position Representations (1803.02155)](../../papers/02-architecture/attention-variants/Self-Attention with Relative Position Representations - 1803.02155.pdf) — learned clipped pairwise distances, efficient relation-aware attention, WMT results, and ablations.
+- [Music Transformer: Generating Music with Long-Term Structure (1809.04281)](../../papers/07-applications/generative-media/Music Transformer: Generating Music with Long-Term Structure - 1809.04281.pdf) — linear-memory relative logits, symbolic-music generation, long-sequence generalization, and accompaniment.

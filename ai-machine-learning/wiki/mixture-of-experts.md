@@ -19,6 +19,7 @@ The foundational approach — **position-wise MoE with capacity constraints** �
 - **Kimi K2** (2025): **384 experts, 8 active per token, sparsity 48, MLA attention**. Pushes the sparsity-driven design point. 1.06T total parameters.
 - **gpt-oss-120b** (OpenAI 2025): MoE with gated SwiGLU. 116.83B parameters with GQA(8).
 - **Intellect-3**: 106B total, 12B active. Post-trained on GLM-4.5-Air base.
+- **Laguna XS.2** (Poolside, 2026): 33.4B total, 3B active. Token-choice routing over 256 experts (8 active) plus one shared expert, with routed-expert output modulated by a coefficient of **2.5** before combining with the shared expert (a DeepSeek-V3/Nemotron-3-style design) and a sigmoid routing function with post-top-k score normalization. See [[model-report-case-studies]] for the full Model Factory report.
 
 ## Unified Scaling Laws for Routed Language Models
 
@@ -47,6 +48,16 @@ Sparse activation creates a **parameter-compute mismatch**: an MoE has to store 
 - **Compute wall**: fine-grained experts create many small GEMMs, routing/permutation overhead, dynamic shapes, and load imbalance.
 
 The practical stack is therefore more than "add experts." Megatron-Core's answer is Expert Parallelism plus **Parallel Folding**, which decouples attention-layer and MoE-layer parallelism so each can use a topology that fits its communication pattern. It then layers in grouped GEMM, fused router/permutation kernels, DeepEP/HybridEP dispatchers, activation recomputation/offload, CUDA Graphs for static parts, and FP8/FP4 recipes. This is why MoE architecture choices and training ops cannot be separated: higher sparsity improves the scaling law only if the dispatch, memory, and small-GEMM overheads are kept under control.
+
+## LatentMoE: Compress the Routed Path, Reinvest in Diversity
+
+[LatentMoE (2601.18089)](../../papers/03-scaling/sparse-moe/LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture of Experts - 2601.18089.pdf) redesigns experts around the memory and communication walls. Tokens are projected from model width `d` into a smaller latent width `l` before dispatch and expert computation, then projected back. This reduces expert-weight traffic and all-to-all payloads by `d/l`. The saved budget is reinvested in more total experts and, in the accuracy-oriented variant, proportionally larger top-k routing.
+
+The paper distinguishes two operating points. `l-MoE_eff` keeps top-k fixed, reducing active parameters and inference cost while matching baseline quality. `l-MoE_acc` scales both expert count and top-k by the compression ratio, keeping approximate serving cost fixed while expanding combinatorial expert diversity. A 4x compression ratio preserved quality in the authors' sweep; compressing without increasing expert count degraded training.
+
+At 95B total parameters and a 300B-token checkpoint, the accuracy-oriented variant improved MMLU-Pro from 29.26 to 34.91 and MMLU from 58.95 to 62.23 at essentially the same total and active parameter counts. The efficiency variant reduced active parameters from 8.47B to 5.62B while matching or improving most benchmarks. On a 73B hybrid Mamba-attention MoE trained for 1T tokens, the accuracy variant improved MMLU-Pro from 48.30 to 52.87 and code from 51.95 to 55.14. Measured H100 throughput was within about 6% of standard MoE at high concurrency, making the accuracy gain close to iso-serving-cost in the current implementation.
+
+The broader systems lesson is that MoE should be optimized for both **accuracy per FLOP** and **accuracy per parameter**. Low-concurrency serving is often limited by loading expert weights, while high-throughput expert parallelism can be dominated by token dispatch; nominal active FLOPs alone miss both costs.
 
 ### Wide Expert Parallelism in RL Training and Inference
 
@@ -99,6 +110,10 @@ The `tanh` provides continuity and stability (vs `sign` which forces ±α update
 
 Some implementations use **learnable routing functions** that adapt during training; others incorporate **expert capacity constraints** that prevent any single expert from being overwhelmed. The key insight across methods: effective load balancing must operate using **global statistics across multiple batches**.
 
+### Padding-Aware Routing (Laguna XS.2)
+
+Poolside's Laguna M.1 training surfaced a subtler load-balancing failure mode specific to sequence-packed training: despite packing, ~5% of training tokens were padding, and because the language-modeling loss is masked on padding (making the padding embedding non-learnable) and padding tokens don't mix with surrounding tokens in attention, every padding token arrives at the router with an *identical* representation. All padding tokens in a batch therefore get routed to the same expert simultaneously, potentially saturating it — and because padding was also included in the load-balancing loss, the aux loss couldn't see or correct this. The fix adopted for Laguna XS.2 was simply to **skip routing and load-balancing for padding tokens entirely**, which ablations confirmed improved routing stability. This is a good concrete addition to the "usual suspects" list of MoE load-balancing failure modes — not every imbalance comes from popular vs. unpopular experts; some comes from degenerate router inputs. See [[model-report-case-studies]] for the full report and [[training-stability]] for Laguna's other stability fixes (LM-head FP32 all-reduce, expert collapse from optimizer LR mismatch).
+
 ### Hash Routing in Early Layers (DeepSeek-V4)
 
 DeepSeek-V4 (see [[model-report-case-studies]] § DeepSeek-V4) departs from learned routing in its first several Transformer blocks: those early MoE layers use **Hash routing**, assigning each token to an expert via a predefined hash of the token ID rather than a learned router affinity score. This sidesteps router-driven load imbalance and instability at the layers closest to the embedding table, where DeepSeek-V4's authors observed MoE outliers were most disruptive to training. Later layers keep the standard DeepSeekMoE learned router with auxiliary-loss-free bias balancing, augmented by the sequence-wise balance loss described above — so the model mixes deterministic and learned routing by depth rather than using one scheme uniformly.
@@ -123,6 +138,7 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - [[rl-training-systems]] — prime-rl's Wide EP and FSDP+EP memory math for training/serving trillion-parameter MoE models in RL
 - [[kv-cache]] — Context Parallelism (Ring Attention/Ulysses/custom DSA) as the sequence-side counterpart to EP's expert-side sharding
 - [[model-report-case-studies]] — DeepSeek-V4's hash-routed early layers and sequence-wise balance loss in full model context
+- [[multimodal-models]] — deterministic modality routing as a complementary sparsity axis
 
 ## Sources
 
@@ -140,3 +156,5 @@ From the [[frontier-training-playbook|architecture decision tree]]: choose **den
 - GLaM (arxiv:2112.06905).
 - "RL at 1T Scale: prime-rl Performance Deep Dive" — Prime Intellect Team, Matej Sirovatka (June 21, 2026), `raw/primeintellect-rl-at-1t-scale.md` — Wide EP for RL inference throughput, and the FSDP+EP memory math (800B params/78 layers/~40GB all-gather buffer) for RL training.
 - [DeepSeek-V4: Architecture and Training Breakdown](https://www.k-a.in/DeepSeek-V4.html) — third-party writeup of DeepSeek's technical report; not currently in the repo as a PDF. See `raw/deepseek-v4-analysis.md` — hash-routed early MoE layers and sequence-wise balance loss.
+- [Laguna M.1/XS.2 Technical Report (2605.27605)](../../papers/07-applications/agents-swe/Laguna M.1-XS.2 Technical Report - 2605.27605.pdf) — token-choice routing with routed-expert modulation, and the padding-token routing collapse fix.
+- [LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture of Experts (2601.18089)](../../papers/03-scaling/sparse-moe/LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture of Experts - 2601.18089.pdf) — latent routed path, expert/top-k reinvestment, 95B and hybrid scaling experiments, and serving analysis.
